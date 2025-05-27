@@ -1,4 +1,4 @@
-import * as style from "./style.js";
+let style = {};
 
 const citiesJSON = "data/CA_CITIES.json";
 const countiesJSON = "data/FILTERED_COUNTY_LINES.json";
@@ -62,7 +62,7 @@ Promise.all([
         d3.zoom()
             .scaleExtent([1, 20])
             .on("zoom", (event) => {
-            zoomGroup.attr("transform", event.transform);
+                zoomGroup.attr("transform", event.transform);
             })
     );
 
@@ -133,9 +133,9 @@ Promise.all([
 // price graph visualization
 ///////////////////////////////////////////////////////////////////////////
 const zillowDataset = "./data/ZILLOW_DATA_CITIES.csv";
-const debugStyle = "" //"outline: 1px solid black"
+const debugStyle = "outline: 1px solid black"
 
-function processRawData(rawData){
+function processGraphData(rawData){
     // RegionID,SizeRank,RegionName,RegionType,StateName,State,Metro,CountyName,
     // 2000-01-31,2000-02-29,2000-03-31,2000-04-30,2000-05-31,2000-06-30,2000-07-31,2000-08-31,2000-09-30,2000-10-31,
     // 2000-11-30,2000-12-31,2001-01-31,2001-02-28,2001-03-31,2001-04-30,2001-05-31,2001-06-30,2001-07-31,2001-08-31,
@@ -487,7 +487,7 @@ function processRawData(rawData){
 }
 
 // main stuff
-const graphContainer = d3.select("#graph");
+const graphContent = d3.select("#graph");
 // const tooltip = d3.select("body").append("div")
 //     .style("display", "none")
 //     .style("position", "absolute")
@@ -501,9 +501,53 @@ const graphContainer = d3.select("#graph");
 //     .html("you shouldn't see this")
 // ;
 
+function initGraphStyling(){
+    const containerRect = graphContent.node().getBoundingClientRect();
+    const transitionTime = 100;
+
+    style.lineGraph = {};
+    style.lineGraph.content = {
+        offset: {x: 76, y: 0}
+    }
+    style.lineGraph.width = containerRect.width*6/8;
+    style.lineGraph.height = style.lineGraph.width / 1.5;
+    style.lineGraph.offset = {
+        x: containerRect.width/2 - style.lineGraph.width/2 - style.lineGraph.content.offset.x/2,
+        y: containerRect.height/2 - style.lineGraph.height/2
+    };
+    style.lineGraph.labels = {
+        x: {
+            text: "Date",
+            offset: {x: 0 + style.lineGraph.width/2, y: 40 + style.lineGraph.height}
+        },
+        y: {
+            text: "Average Value of Homes",
+            offset: {x: -80, y: -style.lineGraph.height/2}
+        },
+        size: 20
+    };
+    style.lineGraph.ticks = {
+        x: {
+            amount: 5
+        },
+        y: {
+            amount: 20
+        },
+        size: 15
+    };
+    style.lineGraph.line = {
+        width: 1.5
+    };
+
+    
+}
+
+
 // get and process dataset
 d3.csv(zillowDataset).then(rawData =>{
     console.log("rawData", rawData);
+
+    initGraphStyling();
 
     // const keys = Object.keys(rawData[0]);
     // console.log("keys", keys);
@@ -514,11 +558,11 @@ d3.csv(zillowDataset).then(rawData =>{
     // }
 
     // process raw data
-    const processedData = processRawData(rawData);
+    const processedData = processGraphData(rawData);
     console.log("processedData", processedData);
 
     // create line graph
-    const mainGraph = createLineGraph(processedData[0]);
+    createLineGraph(processedData[0]);
 
     }).catch(function(error){
     console.log(error);
@@ -533,13 +577,12 @@ function createLineGraph(dataset){
     }
     console.log("dateEntries", dateEntries);
 
-    // create area for lineGraph
-    const lineGraph = graphContainer.append("g")
+    // create lineGraph container
+    const lineGraph = graphContent.append("g")
         .attr("width", style.lineGraph.width)
         .attr("height", style.lineGraph.height)
         .attr("transform", `translate(${style.lineGraph.offset.x}, ${style.lineGraph.offset.y})`)
-        .attr("style", debugStyle) 
-        .classed("lineGraph", true)
+        .attr("style", debugStyle)
     ;
 
     // x range
@@ -549,11 +592,14 @@ function createLineGraph(dataset){
     ;
 
     // x axis visual
-    const lineGraphTicksX = d3.axisBottom(lineGraphX);
+    const lineGraphTicksX = d3.axisBottom(lineGraphX)
+        .ticks(style.lineGraph.ticks.x.amount)
+    ;
     lineGraph.append("g")
         .attr("transform", `translate(${style.lineGraph.content.offset.x}, ${style.lineGraph.height + style.lineGraph.content.offset.y})`)
-        .attr("font-size", `${style.lineGraph.ticks.size}px`)
         .call(lineGraphTicksX)
+        .attr("font-size", `${style.lineGraph.ticks.size}px`)
+    ;
     
     // y range
     const lineGraphY = d3.scaleLinear()
@@ -566,7 +612,7 @@ function createLineGraph(dataset){
 
     // y axis visual
     const lineGraphTicksY = d3.axisLeft(lineGraphY)
-        .ticks(20)
+        .ticks(style.lineGraph.ticks.y.amount)
         .tickFormat(function(tick){
             return tick.toLocaleString("en-US", {style: "currency", currency: "USD"});
         })
@@ -574,6 +620,7 @@ function createLineGraph(dataset){
     lineGraph.append("g")
         .attr("transform", `translate(${style.lineGraph.content.offset.x}, ${style.lineGraph.content.offset.y})`)
         .call(lineGraphTicksY)
+        .attr("font-size", `${style.lineGraph.ticks.size}px`)
     ;
     // x label
     lineGraph.append("text")
@@ -584,16 +631,18 @@ function createLineGraph(dataset){
         .text(dataset.name);
 
     // y label
-    lineGraph.append("text")
-        .attr("x", style.lineGraph.labels.y.offset.y - style.lineGraph.content.offset.y)
-        .attr("y", style.lineGraph.labels.y.offset.x + style.lineGraph.content.offset.x)
-        .attr("font-size", `${style.lineGraph.labels.size}px`)
-        .attr("text-anchor", "middle")
-        .attr("transform", "rotate(-90)")
-        .text(style.lineGraph.labels.y.text);
+    // lineGraph.append("text")
+    //     .attr("transform", "rotate(-90)")
+    //     .attr("x", style.lineGraph.labels.y.offset.y - style.lineGraph.content.offset.y)
+    //     .attr("y", style.lineGraph.labels.y.offset.x + style.lineGraph.content.offset.x)
+    //     .attr("font-size", `${style.lineGraph.labels.size}px`)
+    //     .attr("text-anchor", "middle")
+    //     .text(style.lineGraph.labels.y.text)
+    // ;
     
-    // points
+    // line
     lineGraph.append("path")
+        .attr("transform", `translate(${style.lineGraph.content.offset.x}, ${style.lineGraph.content.offset.y})`)
         .datum(dataset.prices)
         .attr("fill", "none")
         .attr("stroke", "blue")
@@ -647,6 +696,4 @@ function createLineGraph(dataset){
         //         .style('display', 'none');
         // })
     ;
-
-    return lineGraph;
 }

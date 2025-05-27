@@ -8,24 +8,27 @@
     <script src="https://d3js.org/d3.v7.min.js"></script>
   </head>
   <body>
-    <div id="controls">
-      <label for="yearSlider">
-        Year: <span id="yearLabel">2023</span>
-      </label>
-      <input
-        type="range"
-        id="yearSlider"
-        min="2000"
-        max="2023"
-        value="2023"
-        step="1"
-      />
-    </div>
+	<div id="graphContainer">
+		<svg id="graph"></svg>
+	</div>
 
-    <svg id="map"></svg>
+	<div id="mapContainer">
+		<div id="controls">
+			<label for="yearSlider">
+				Year: <span id="yearLabel">2023</span>
+			</label>
+			<input
+				type="range"
+				id="yearSlider"
+				min="2000"
+				max="2023"
+				value="2023"
+				step="1"
+			/>
+		</div>
+		<svg id="map"></svg>
+	</div>
 
-	<svg id="graph"></svg>
-
-    <script src="main.js" type="module"></script>
+    <script src="main.js" defer type="module"></script>
   </body>
 </html>
