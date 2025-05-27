@@ -1,0 +1,6 @@
+data/California_Incoporated_Cities.geojson
+data/COUNTY_LINES.json
+data/BIG_FIRES.geojson
+data/CountyLineParser.py
+data/FIRE_DB_1000PLUS_ACRES.csv
+backup/*
