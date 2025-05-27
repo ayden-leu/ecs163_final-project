@@ -25,18 +25,10 @@ Promise.all([
     d3.json(firesJSON),
 ]).then(([cityGeo, countyGeo, fireGeo]) => {
     const svg = d3.select("#map");
+    const containerRect = svg.node().getBoundingClientRect();
 
-    let width = svg.attr("width");
-    let height = svg.attr("height");
-
-    if (!width || !height) {
-        width = 960;
-        height = 600;
-        svg.attr("width", width).attr("height", height);
-    } else {
-        width = +width;
-        height = +height;
-    }
+    const width = +containerRect.width;
+    const height = +containerRect.height;
 
     const validCities = cityGeo.features.filter(isValidGeometry);
     const validCounties = countyGeo.features.filter(isValidGeometry);
