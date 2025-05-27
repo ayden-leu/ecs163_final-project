@@ -6,42 +6,12 @@
     <title>California Cities Map</title>
     <link rel="stylesheet" href="style.css" />
     <script src="https://d3js.org/d3.v7.min.js"></script>
-    <style>
-      html,
-      body {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        width: 100%;
-        font-family: sans-serif;
-        background: #f9f9f9;
-        display: flex;
-        flex-direction: column;
-      }
-
-      #controls {
-        padding: 1rem;
-        background-color: #fff;
-        border-bottom: 1px solid #ccc;
-        z-index: 1;
-      }
-
-      #yearSlider {
-        width: 300px;
-        vertical-align: middle;
-      }
-
-      svg#map {
-        flex: 1;
-        width: 100%;
-        background: #cce0ff; /* soft blue background */
-        display: block;
-      }
-    </style>
   </head>
   <body>
     <div id="controls">
-      <label for="yearSlider">Year: <span id="yearLabel">2023</span></label>
+      <label for="yearSlider">
+        Year: <span id="yearLabel">2023</span>
+      </label>
       <input
         type="range"
         id="yearSlider"
