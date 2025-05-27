@@ -18,6 +18,8 @@ function isValidGeometry(feature) {
 }
 
 let allFires = [];
+const yearSlider = document.getElementById("yearSlider");
+const yearLabel = document.getElementById("yearLabel");
 
 Promise.all([
     d3.json(citiesJSON),
@@ -108,9 +110,6 @@ Promise.all([
     }
 
     // Slider logic
-    const yearSlider = document.getElementById("yearSlider");
-    const yearLabel = document.getElementById("yearLabel");
-
     yearSlider.addEventListener("input", () => {
         const year = +yearSlider.value;
         yearLabel.textContent = year;
@@ -495,7 +494,8 @@ const graphContent = d3.select("#graph");
 
 function initGraphStyling(){
     const containerRect = graphContent.node().getBoundingClientRect();
-    const transitionTime = 100;
+    
+    style.transitionTime = 100;
 
     style.lineGraph = {};
     style.lineGraph.content = {
@@ -530,8 +530,6 @@ function initGraphStyling(){
     style.lineGraph.line = {
         width: 1.5
     };
-
-    
 }
 
 
@@ -553,23 +551,26 @@ d3.csv(zillowDataset).then(rawData =>{
     const processedData = processGraphData(rawData);
     console.log("processedData", processedData);
 
+    // get date range
+    let datatsetDates = [];
+    for(let index in processedData[0].prices){
+        datatsetDates.push(processedData[0].prices[index].date);
+    }
+    console.log("datatsetDates", datatsetDates);
+    
     // create line graph
-    createLineGraph(processedData[0]);
+    const lineGraph = createLineGraph(datatsetDates);
+
+    // draw line
+    updateLineGraph(processedData[0], lineGraph);
+    updateLineGraph(processedData[1], lineGraph);
 
     }).catch(function(error){
     console.log(error);
 });
 
-function createLineGraph(dataset){
-    // get date entries
-    console.log("dataset", dataset);
-    let dateEntries = [];
-    for(let index in dataset.prices){
-        dateEntries.push(dataset.prices[index].date);
-    }
-    console.log("dateEntries", dateEntries);
-
-    // create lineGraph container
+function createLineGraph(datasetDates){
+    // create lineGraph elements
     const lineGraph = graphContent.append("g")
         .attr("width", style.lineGraph.width)
         .attr("height", style.lineGraph.height)
@@ -578,49 +579,38 @@ function createLineGraph(dataset){
     ;
 
     // x range
-    const lineGraphX = d3.scaleTime()
-        .domain(d3.extent(dateEntries))
+    const lineGraphRangeX = d3.scaleTime()
+        .domain(d3.extent(datasetDates))
         .range([0, style.lineGraph.width])
     ;
-
     // x axis visual
-    const lineGraphTicksX = d3.axisBottom(lineGraphX)
+    const lineGraphTicksX = d3.axisBottom(lineGraphRangeX)
         .ticks(style.lineGraph.ticks.x.amount)
     ;
-    lineGraph.append("g")
+    const lineGraphX = lineGraph.append("g")
         .attr("transform", `translate(${style.lineGraph.content.offset.x}, ${style.lineGraph.height + style.lineGraph.content.offset.y})`)
         .call(lineGraphTicksX)
         .attr("font-size", `${style.lineGraph.ticks.size}px`)
     ;
     
-    // y range
-    const lineGraphY = d3.scaleLinear()
-        .domain([  // round down as the precision caused errors in the min max evaluations
-            d3.min(dataset.prices, entry => Math.floor(entry.value)),
-            d3.max(dataset.prices, entry => Math.floor(entry.value))
-        ])
+    // y axis range
+    const lineGraphRangeY = d3.scaleLinear()
         .range([style.lineGraph.height, 0])
         .nice();
 
     // y axis visual
-    const lineGraphTicksY = d3.axisLeft(lineGraphY)
-        .ticks(style.lineGraph.ticks.y.amount)
-        .tickFormat(function(tick){
-            return tick.toLocaleString("en-US", {style: "currency", currency: "USD"});
-        })
-    ;
-    lineGraph.append("g")
+    const lineGraphY = lineGraph.append("g")
         .attr("transform", `translate(${style.lineGraph.content.offset.x}, ${style.lineGraph.content.offset.y})`)
-        .call(lineGraphTicksY)
         .attr("font-size", `${style.lineGraph.ticks.size}px`)
     ;
+
     // x label
-    lineGraph.append("text")
+    const lineGraphLabelX = lineGraph.append("text")
         .attr("x", style.lineGraph.labels.x.offset.x + style.lineGraph.content.offset.x)
         .attr("y", style.lineGraph.labels.x.offset.y + style.lineGraph.content.offset.y)
         .attr("font-size", `${style.lineGraph.labels.size}px`)
         .attr("text-anchor", "middle")
-        .text(dataset.name);
+    ;
 
     // y label
     // lineGraph.append("text")
@@ -631,18 +621,13 @@ function createLineGraph(dataset){
     //     .attr("text-anchor", "middle")
     //     .text(style.lineGraph.labels.y.text)
     // ;
-    
+
     // line
-    lineGraph.append("path")
+    const lineGraphLine = lineGraph.append("path")
         .attr("transform", `translate(${style.lineGraph.content.offset.x}, ${style.lineGraph.content.offset.y})`)
-        .datum(dataset.prices)
         .attr("fill", "none")
         .attr("stroke", "blue")
         .attr("stroke-width", style.lineGraph.line.width)
-        .attr("d", d3.line()
-            .x(entry => lineGraphX(entry.date))
-            .y(entry => lineGraphY(entry.value))
-        )
         .on("mouseover", function(entry){
             const line = d3.select(this);
         })
@@ -687,5 +672,79 @@ function createLineGraph(dataset){
         //     tooltip
         //         .style('display', 'none');
         // })
+    ;
+
+    return {
+        graph: lineGraph,
+        line: lineGraphLine,
+        x: {
+            visual: null,
+            scale: lineGraphRangeX,
+            ticks: null,
+            label: lineGraphLabelX,
+        },
+        y: {
+            visual: lineGraphY,
+            scale: lineGraphRangeY,
+            ticks: null,
+            label: null
+        }
+    };
+
+    // add tooltip stuff
+    // https://d3-graph-gallery.com/graph/line_cursor.html
+    
+    // slider functionality
+    // function drawLine(year) {
+    //     const filtered = allFires.filter(f => f.properties.YEAR_ === year);
+
+    //     const firePaths = fireLayer.selectAll("path.fire")
+    //         .data(filtered, d => d.properties.IRWINID || JSON.stringify(d.geometry));
+
+    //     firePaths.join(
+    //         enter => enter.append("path")
+    //             .attr("class", "fire")
+    //             .attr("d", path)
+    //             .attr("fill", "orange")
+    //             .attr("opacity", 0.5)
+    //             .attr("stroke", "#ff8800")
+    //             .attr("stroke-width", 0.2),
+    //         update => update,
+    //         exit => exit.remove()
+    //     );
+    // }
+
+    // slider functionality
+    yearSlider.addEventListener("input", () => {
+        console.log("hi");
+        drawLineFromData();
+    });
+}
+
+function updateLineGraph(data, mainGraph){
+    mainGraph.x.label.text(data.name);
+
+    mainGraph.y.scale.domain([  // round down as the precision caused errors in the min max evaluations
+        d3.min(data.prices, entry => Math.floor(entry.value)),
+        d3.max(data.prices, entry => Math.floor(entry.value))
+    ]);
+    mainGraph.y.ticks = d3.axisLeft(mainGraph.y.scale)
+        .ticks(style.lineGraph.ticks.y.amount)
+        .tickFormat(function(tick){
+            return tick.toLocaleString("en-US", {style: "currency", currency: "USD"});
+        })
+    ;
+    mainGraph.y.visual
+        .transition().duration(style.transitionTime)
+        .call(mainGraph.y.ticks)
+    ;
+
+    mainGraph.line
+        .datum(data.prices)
+        .transition().duration(style.transitionTime)
+        .attr("d", d3.line()
+            .x(entry => mainGraph.x.scale(entry.date))
+            .y(entry => mainGraph.y.scale(entry.value))
+        )
     ;
 }
