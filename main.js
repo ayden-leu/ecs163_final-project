@@ -520,7 +520,7 @@ function initGraphStyling(){
     };
     style.lineGraph.ticks = {
         x: {
-            amount: 5
+            amount: 25
         },
         y: {
             amount: 20
@@ -528,8 +528,21 @@ function initGraphStyling(){
         size: 15
     };
     style.lineGraph.line = {
-        width: 1.5
+        width: 3,
+        color: {
+            default: "blue",
+            highlighted: "gold"
+        }
     };
+    style.lineGraph.focusCircle = {
+        radius: 8,
+        width: 3,
+        color: "black"
+    }
+    style.lineGraph.highlighter = {
+        color: "white",
+        opacity: 0.2
+    }
 }
 
 
@@ -538,14 +551,6 @@ d3.csv(zillowDataset).then(rawData =>{
     console.log("rawData", rawData);
 
     initGraphStyling();
-
-    // const keys = Object.keys(rawData[0]);
-    // console.log("keys", keys);
-
-    // for(let index in keys){
-    //     const date = keys[index];
-    //     console.log('{date: d3.timeParse("%Y-%m-%d")("' + date + '"), value: entry["' + date + '"] === "NA"? 0 : entry["' + date + '"]},', "\n");
-    // }
 
     // process raw data
     const processedData = processGraphData(rawData);
@@ -563,7 +568,6 @@ d3.csv(zillowDataset).then(rawData =>{
 
     // draw line
     updateLineGraph(processedData[0], lineGraph);
-    // updateLineGraph(processedData[1], lineGraph);
 
     }).catch(function(error){
     console.log(error);
@@ -586,6 +590,9 @@ function createLineGraph(datasetDates){
     // x axis visual
     const lineGraphTicksX = d3.axisBottom(lineGraphRangeX)
         .ticks(style.lineGraph.ticks.x.amount)
+        .tickFormat(function(data){
+            return "'" + d3.timeFormat("%y")(data);
+        })
     ;
     const lineGraphX = lineGraph.append("g")
         .attr("transform", `translate(${style.lineGraph.content.offset.x}, ${style.lineGraph.height + style.lineGraph.content.offset.y})`)
@@ -600,7 +607,7 @@ function createLineGraph(datasetDates){
 
     // y axis visual
     const lineGraphY = lineGraph.append("g")
-        .attr("transform", `translate(${style.lineGraph.content.offset.x}, ${style.lineGraph.content.offset.y})`)
+        .attr("transform", `translate(${style.lineGraph.content.offset.x - 2}, ${style.lineGraph.content.offset.y})`)
         .attr("font-size", `${style.lineGraph.ticks.size}px`)
     ;
 
@@ -626,7 +633,7 @@ function createLineGraph(datasetDates){
     const lineGraphLine = lineGraph.append("path")
         .attr("transform", `translate(${style.lineGraph.content.offset.x}, ${style.lineGraph.content.offset.y})`)
         .attr("fill", "none")
-        .attr("stroke", "blue")
+        .attr("stroke", style.lineGraph.line.color.default)
         .attr("stroke-width", style.lineGraph.line.width)
         .on("mouseover", function(entry){
             const line = d3.select(this);
@@ -674,19 +681,55 @@ function createLineGraph(datasetDates){
         // })
     ;
 
-    // rect for emphasizing the current time period on the slider
-    // const focusCircle = lineGraph.append("circle")
-    //     .style("fill", "none")
-    //     .attr("stroke", "black")
-    //     .attr('r', 8.5)
-    //     .style("opacity", 0)
+    // rectangle for emphasizing the current time period on the slider
+    const sectionHighlighter = lineGraph.append("rect")
+        .attr("transform", `translate(${style.lineGraph.content.offset.x}, ${style.lineGraph.content.offset.y})`)
+        .style("fill", style.lineGraph.highlighter.color)
+        .attr("height", style.lineGraph.height)
+        .style("opacity", 0)
+    ;
 
+    // highlighted section of line
+    const lineGraphLineHighlighted = lineGraph.append("path")
+        .attr("transform", `translate(${style.lineGraph.content.offset.x}, ${style.lineGraph.content.offset.y})`)
+        .attr("fill", "none")
+        .attr("stroke", style.lineGraph.line.color.highlighted)
+        .attr("stroke-width", style.lineGraph.line.width)
+    ;
+    const lineClipPath = lineGraph.append("clipPath")
+        .attr("id", "lineClipPath")
+    ;
+    const lineClipPathRect = lineClipPath.append("rect")
+        .attr("height", style.lineGraph.height)
+    ;
+    lineGraphLineHighlighted.attr("clip-path", "url(#lineClipPath)");
+    
+    // link slider to highlighters
+    function updateHighlightedSection(){
+        const startDate = new Date(yearSlider.value, 0, 1); // January 1st of the selected year
+        const endDate = new Date(yearSlider.value, 11, 31); // December 31st of the selected year
 
-    // tooltip
+        const startX = lineGraphRangeX(startDate);
+        const endX = lineGraphRangeX(endDate);
+
+        sectionHighlighter
+            .attr("x", startX)
+            .attr("width", endX - startX)
+            .style("opacity", style.lineGraph.highlighter.opacity)
+        ;
+        lineClipPathRect
+            .attr("x", startX)
+            .attr("width", endX - startX)
+        ;
+    }
+    yearSlider.addEventListener("input", updateHighlightedSection);
+
+    // tooltip + circle
     const focusCircle = lineGraph.append("circle")
         .style("fill", "none")
-        .attr("stroke", "black")
-        .attr('r', 8.5)
+        .attr("stroke", style.lineGraph.focusCircle.color)
+        .attr("stroke-width", style.lineGraph.focusCircle.width)
+        .attr('r', style.lineGraph.focusCircle.radius)
         .style("opacity", 0)
     
     const mouseDetectionArea = lineGraph.append("rect")
@@ -699,8 +742,11 @@ function createLineGraph(datasetDates){
 
     return {
         graph: lineGraph,
-        line: lineGraphLine,
-        currentTimePoint: null,
+        line: {
+            main: lineGraphLine,
+            highlighted: lineGraphLineHighlighted
+        },
+        sectionHighlighter: sectionHighlighter,
         hoverCircle: focusCircle,
         detectionArea: mouseDetectionArea,
         x: {
@@ -717,37 +763,12 @@ function createLineGraph(datasetDates){
         }
     };
 
-    // add tooltip stuff
+    // hover circle source (content is outdated though, d3.mouse doesnt exist)
     // https://d3-graph-gallery.com/graph/line_cursor.html
-    
-    // slider functionality
-    // function drawLine(year) {
-    //     const filtered = allFires.filter(f => f.properties.YEAR_ === year);
-
-    //     const firePaths = fireLayer.selectAll("path.fire")
-    //         .data(filtered, d => d.properties.IRWINID || JSON.stringify(d.geometry));
-
-    //     firePaths.join(
-    //         enter => enter.append("path")
-    //             .attr("class", "fire")
-    //             .attr("d", path)
-    //             .attr("fill", "orange")
-    //             .attr("opacity", 0.5)
-    //             .attr("stroke", "#ff8800")
-    //             .attr("stroke-width", 0.2),
-    //         update => update,
-    //         exit => exit.remove()
-    //     );
-    // }
-
-    // slider functionality
-    yearSlider.addEventListener("input", () => {
-        console.log("hi");
-        drawLineFromData();
-    });
 }
 
 function updateLineGraph(data, mainGraph){
+    // update graph ranges
     mainGraph.x.label.text(data.name);
 
     mainGraph.y.scale.domain([  // round down as the precision caused errors in the min max evaluations
@@ -765,7 +786,8 @@ function updateLineGraph(data, mainGraph){
         .call(mainGraph.y.ticks)
     ;
 
-    mainGraph.line
+    // update line
+    mainGraph.line.main
         .datum(data.prices)
         .transition().duration(style.transitionTime)
         .attr("d", d3.line()
@@ -773,11 +795,17 @@ function updateLineGraph(data, mainGraph){
             .y(entry => mainGraph.y.scale(entry.value))
         )
     ;
-
-    const getClosestXFromMouse = d3.bisector(function(data){
-        console.log("bisect data", data);
-        return data.date;
-    }).left;
+    mainGraph.line.highlighted
+        .datum(data.prices)
+        .transition().duration(style.transitionTime)
+        .attr("d", d3.line()
+            .x(entry => mainGraph.x.scale(entry.date))
+            .y(entry => mainGraph.y.scale(entry.value))
+        )
+    ;
+    
+    // update range the hover circle reads from
+    const getClosestXFromMouse = d3.bisector(data => data.date).left;
 
     mainGraph.detectionArea
         .on("mouseover", function() {
