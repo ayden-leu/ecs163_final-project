@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,28 +8,29 @@
     <link rel="stylesheet" href="style.css" />
     <script src="https://d3js.org/d3.v7.min.js"></script>
   </head>
-  <body>
-	<div id="graphContainer">
-		<svg id="graph"></svg>
-	</div>
 
-	<div id="mapContainer">
-		<div id="controls">
-			<label for="yearSlider">
-				Year: <span id="yearLabel">2023</span>
-			</label>
-			<input
-				type="range"
-				id="yearSlider"
-				min="2000"
-				max="2023"
-				value="2023"
-				step="1"
-			/>
-		</div>
-		<svg id="map"></svg>
-	</div>
+  <body>
+      <div id="graphContainer">
+        <svg id="graph"></svg>
+      </div>
+        <div id="mapContainer">
+          <div id="controls">
+            <label for="yearSlider">
+              Year: <span id="yearLabel">2023</span>
+            </label>
+            <input type="range" id="yearSlider" min="2000" max="2023" value="2023" step="1" />
+          </div>
+          <svg id="map"></svg>
+        </div>
+        <!-- Sidebar for county/city/fire information -->
+        <div id="sidebar">
+          <button id="closeSidebarButton">x</button>
+          <div id="sidebarContent"></div>
+        </div>
+
 
     <script src="main.js" defer type="module"></script>
+
   </body>
+
 </html>
