@@ -124,7 +124,7 @@ Promise.all([
 // price graph visualization
 ///////////////////////////////////////////////////////////////////////////
 const zillowDataset = "./data/ZILLOW_DATA_CITIES.csv";
-const debugStyle = "outline: 1px solid black"
+const debugStyle = "" //"outline: 1px solid black"
 
 function processGraphData(rawData){
     // RegionID,SizeRank,RegionName,RegionType,StateName,State,Metro,CountyName,
@@ -563,7 +563,7 @@ d3.csv(zillowDataset).then(rawData =>{
 
     // draw line
     updateLineGraph(processedData[0], lineGraph);
-    updateLineGraph(processedData[1], lineGraph);
+    // updateLineGraph(processedData[1], lineGraph);
 
     }).catch(function(error){
     console.log(error);
@@ -674,9 +674,35 @@ function createLineGraph(datasetDates){
         // })
     ;
 
+    // rect for emphasizing the current time period on the slider
+    // const focusCircle = lineGraph.append("circle")
+    //     .style("fill", "none")
+    //     .attr("stroke", "black")
+    //     .attr('r', 8.5)
+    //     .style("opacity", 0)
+
+
+    // tooltip
+    const focusCircle = lineGraph.append("circle")
+        .style("fill", "none")
+        .attr("stroke", "black")
+        .attr('r', 8.5)
+        .style("opacity", 0)
+    
+    const mouseDetectionArea = lineGraph.append("rect")
+        .attr("transform", `translate(${style.lineGraph.content.offset.x}, ${style.lineGraph.content.offset.y})`)
+        .attr("fill", "none")
+        .attr("pointer-events", "all")
+        .attr("width", style.lineGraph.width)
+        .attr("height", style.lineGraph.height)
+    ;
+
     return {
         graph: lineGraph,
         line: lineGraphLine,
+        currentTimePoint: null,
+        hoverCircle: focusCircle,
+        detectionArea: mouseDetectionArea,
         x: {
             visual: null,
             scale: lineGraphRangeX,
@@ -746,5 +772,31 @@ function updateLineGraph(data, mainGraph){
             .x(entry => mainGraph.x.scale(entry.date))
             .y(entry => mainGraph.y.scale(entry.value))
         )
+    ;
+
+    const getClosestXFromMouse = d3.bisector(function(data){
+        console.log("bisect data", data);
+        return data.date;
+    }).left;
+
+    mainGraph.detectionArea
+        .on("mouseover", function() {
+            mainGraph.hoverCircle.style("opacity", 1);
+        })
+        .on("mousemove", function(event){
+            const mousePosition = d3.pointer(event, this);
+            const mousePositionOnGraph = mainGraph.x.scale.invert(mousePosition[0]);
+            const closestIndex = getClosestXFromMouse(data.prices, mousePositionOnGraph, 1);
+            const closestEntry = data.prices[closestIndex];
+
+            mainGraph.hoverCircle
+                .attr("transform", `translate(${style.lineGraph.content.offset.x}, ${style.lineGraph.content.offset.y})`)
+                .attr("cx", mainGraph.x.scale(closestEntry.date))
+                .attr("cy", mainGraph.y.scale(closestEntry.value))
+            ;
+        })
+        .on("mouseout", function() {
+            mainGraph.hoverCircle.style("opacity", 0);
+        })
     ;
 }
