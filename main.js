@@ -545,6 +545,13 @@ function initGraphStyling(){
     }
 }
 
+function getEntryByAspect(dataset, aspect, value){
+    for(let index in dataset){
+        if(dataset[index][aspect] === value){
+            return dataset[index];
+        }
+    }
+}
 
 // get and process dataset
 d3.csv(zillowDataset).then(rawData =>{
@@ -567,7 +574,8 @@ d3.csv(zillowDataset).then(rawData =>{
     const lineGraph = createLineGraph(datatsetDates);
 
     // draw line
-    updateLineGraph(processedData[0], lineGraph);
+    const selectedCity = getEntryByAspect(processedData, "name", "Davis");
+    updateLineGraph(selectedCity, lineGraph);
 
     }).catch(function(error){
     console.log(error);
