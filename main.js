@@ -21,20 +21,27 @@ let allFires = [];
 const yearSlider = document.getElementById("yearSlider");
 const yearLabel = document.getElementById("yearLabel");
 
+//
+let cityLayer, countyLayer; // Layers to toggle between
+let showingCounties = true; // Views counties by default
+
 Promise.all([
     d3.json(citiesJSON),
     d3.json(countiesJSON),
     d3.json(firesJSON),
 ]).then(([cityGeo, countyGeo, fireGeo]) => {
     const svg = d3.select("#map");
-    const containerRect = svg.node().getBoundingClientRect();
 
+    const containerRect = svg.node().getBoundingClientRect();
     const width = +containerRect.width;
     const height = +containerRect.height;
+
+    const sideBar = document.getElementById("sidebar"); // Sidebar DOM element
 
     const validCities = cityGeo.features.filter(isValidGeometry);
     const validCounties = countyGeo.features.filter(isValidGeometry);
     const validFires = fireGeo.features.filter(isValidGeometry);
+
     allFires = validFires;
 
     const combined = {
@@ -52,13 +59,20 @@ Promise.all([
 
     const zoomGroup = svg.append("g").attr("class", "zoom-layer");
 
-    svg.call(
-        d3.zoom()
-            .scaleExtent([1, 20])
-            .on("zoom", (event) => {
-                zoomGroup.attr("transform", event.transform);
-            })
-    );
+    const zoom = d3.zoom()
+        .scaleExtent([1, 20])
+        .on("zoom", (event) => {
+            zoomGroup.attr("transform", event.transform);
+        });
+    
+    svg.call(zoom);
+    // svg.call(
+    //     d3.zoom()
+    //         .scaleExtent([1, 20])
+    //         .on("zoom", (event) => {
+    //             zoomGroup.attr("transform", event.transform);
+    //         })
+    // );
 
     // Counties (underneath)
     zoomGroup
@@ -71,7 +85,9 @@ Promise.all([
         .attr("fill", "#f0f0f0")
         .attr("stroke", "#aaa")
         .attr("stroke-width", 0.2)
-        .attr("shape-rendering", "crispEdges");
+        .attr("shape-rendering", "crispEdges")
+        .on("click", handleCountyClick);
+
 
     // Cities (middle layer)
     zoomGroup
@@ -86,11 +102,26 @@ Promise.all([
         .attr("stroke-width", 0.1)
         .attr("stroke-opacity", 0.6)
         .attr("shape-rendering", "crispEdges");
+        
 
     // Fires (top layer)
     const fireLayer = zoomGroup.append("g").attr("class", "fire-layer");
 
-    function drawFiresByYear(year) {
+    // Sets up the tooltips for the fires, appends the tooltip div to the body and styles it
+    const tooltip = d3.select("body")
+    .append("div")
+    .attr("class", "fire-tooltip")
+    .style("position", "absolute")
+    .style("padding", "8px")
+    .style("background", "rgba(0, 0, 0, 0.8)")
+    .style("color", "#fff")
+    .style("border-radius", "4px")
+    .style("font-size", "12px")
+    .style("pointer-events", "none")
+    .style("opacity", 0);
+
+    function drawFiresByYear(year) 
+    {
         const filtered = allFires.filter(f => f.properties.YEAR_ === year);
 
         const firePaths = fireLayer.selectAll("path.fire")
@@ -103,10 +134,73 @@ Promise.all([
                 .attr("fill", "orange")
                 .attr("opacity", 0.5)
                 .attr("stroke", "#ff8800")
-                .attr("stroke-width", 0.2),
+                .attr("stroke-width", 0.2)
+
+                // Tooltip events below; When mouse goes over a fire, show the tooltip with fire details (name, year, and acreage)
+                .on("mouseover", (event, d) => {
+                    const props = d.properties;
+                    tooltip.style("opacity", 1)
+                        .html(`
+                            <strong>${props.FIRE_NAME || "Unknown Fire"}</strong><br/>
+                            <strong>Year:</strong> ${props.YEAR_ || "N/A"}<br/>
+                            <strong>Acres:</strong> ${props.GIS_ACRES?.toLocaleString() || "N/A"}
+                        `)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 28) + "px");
+                })
+                .on("mousemove", (event) => {
+                    tooltip.style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 28) + "px");
+                })
+                .on("mouseout", () => {
+                    tooltip.style("opacity", 0);
+                }),
+
             update => update,
             exit => exit.remove()
         );
+    }
+
+    function handleCountyClick(event, d) {
+        const bounds = path.bounds(d);
+  const dx = bounds[1][0] - bounds[0][0];
+  const dy = bounds[1][1] - bounds[0][1];
+  const x = (bounds[0][0] + bounds[1][0]) / 2;
+  const y = (bounds[0][1] + bounds[1][1]) / 2;
+  const scale = Math.max(1, Math.min(8, 0.9 / Math.max(dx / width, dy / height)));
+//   const translate = [width / 2 - scale * x, height / 2 - scale * y];
+const sidebarOffset = 250;  // Match the sidebar width in CSS
+const translate = [(width - sidebarOffset) / 2 - scale * x, height / 2 - scale * y];
+
+  svg.transition()
+    .duration(750)
+    .call(
+      zoom.transform,
+      d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale)
+    );
+
+  // Fill the sidebar
+  const props = d.properties;
+  const sidebar = document.getElementById("sidebar");
+  const sidebarContent = document.getElementById("sidebarContent");
+
+  sidebar.innerHTML = `
+    <button id="closeSidebarBtn" style="float:right;">X</button>
+    <h2>${props.NAME || "Unknown County"}</h2>
+    <p><strong>Population:</strong> ${props.POP || "N/A"}</p>
+    <p><strong>Area:</strong> ${props.AREA || "N/A"} sq mi</p>
+  `;
+  //sidebar.style.display = "block";
+    sidebar.classList.add("visible");
+  //document.getElementById("mapContainer").classList.add("with-sidebar");
+
+  // Set up close button
+  document.getElementById("closeSidebarBtn").addEventListener("click", () => {
+    //sidebar.style.display = "none";
+    //document.getElementById("mapContainer").classList.remove("with-sidebar");
+    sidebar.classList.remove("visible");
+    sidebarContent.innerHTML = "";
+  });
     }
 
     // Slider logic
