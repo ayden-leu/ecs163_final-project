@@ -1,37 +1,29 @@
-/* GLOBAL PAGE LAYOUT */
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   height: 100%;
   width: 100%;
   font-family: sans-serif;
   background: #f9f9f9;
+  display: flex;
+  flex-direction: row;
 }
 
-/* FLEX LAYOUT FOR MAIN VIEW */
-body {
-  display: flex;
-  flex-direction: column;
-}
-
-/* MAIN CONTENT AREA */
-#mainContent {
-  display: flex;
+#mapContainer {
+  margin: 0;
+  padding: 0;
   height: 100%;
   width: 100%;
-  overflow: hidden;
-}
-
-/* MAP SECTION */
-#mapContainer {
-  flex: 1;
+  font-family: sans-serif;
+  background: #f9f9f9;
   display: flex;
+  flex: 1;
   flex-direction: column;
-  height: 100%;
+  position: relative; 
   transition: width 0.3s ease;
 }
 
-/* TOP CONTROLS */
 #controls {
   display: flex;
   align-items: center;
@@ -49,7 +41,6 @@ body {
   padding-left: 0.5rem;
 }
 
-/* SLIDER STYLE */
 #yearSlider {
   -webkit-appearance: none;
   appearance: none;
@@ -62,7 +53,17 @@ body {
   cursor: pointer;
 }
 
-#yearSlider::-webkit-slider-thumb,
+#yearSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: orange;
+  border: 2px solid #444;
+  cursor: pointer;
+}
+
 #yearSlider::-moz-range-thumb {
   width: 18px;
   height: 18px;
@@ -72,7 +73,6 @@ body {
   cursor: pointer;
 }
 
-/* SVG MAP */
 svg#map {
   flex: 1;
   width: 100%;
@@ -80,29 +80,41 @@ svg#map {
   display: block;
 }
 
-/* SIDEBAR HIDDEN INITIALLY */
+/* Sidebar container */
+
+/* Main container (map + other content) */
+#mapContainer {
+  transition: margin-right 0.3s ease;
+  margin-right: 0;
+}
+
+/* When sidebar is visible, shrink main content */
+#mapContainer.with-sidebar {
+  width: calc(100% - 300px);
+}
+
+/* Sidebar styles */
 #sidebar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
   width: 0;
   overflow-x: hidden;
   overflow-y: auto;
   background-color: #f1f1f1;
-  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
   transition: width 0.3s ease;
   z-index: 10;
-  position: relative;
+  padding: 0;
+  box-shadow: -2px 0 5px rgba(0,0,0,0.2);
 }
 
-/* SHOW SIDEBAR WHEN ACTIVE */
 #sidebar.visible {
   width: 300px;
+  padding: 10px;
 }
 
-/* SIDEBAR CONTENT */
-#sidebarContent {
-  padding: 16px;
-}
-
-/* CLOSE BUTTON */
+/* Close button styling */
 #closeSidebarButton {
   position: absolute;
   top: 10px;
@@ -114,27 +126,11 @@ svg#map {
   cursor: pointer;
 }
 
-/* SHRINK MAP WHEN SIDEBAR IS OPEN */
-#mapContainer.with-sidebar {
-  width: calc(100% - 300px);
-}
-
-/* CHART CONTAINER INSIDE SIDEBAR */
-#graphContainer {
-  margin-top: 20px;
+#mainContent{
   width: 100%;
-  min-height: 200px;
-}
-
-
-
-#dragHandle {
-  width: 5px;
-  cursor: ew-resize;
-  background: #ccc;
   height: 100%;
-  position: absolute;
-  left: 0;
-  top: 0;
-  z-index: 100;
+}
+#lineChartContainer {
+  flex: 1;
+  min-height: 200px;
 }

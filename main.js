@@ -4,6 +4,15 @@ const citiesJSON = "data/CA_CITIES.json";
 const countiesJSON = "data/FILTERED_COUNTY_LINES.json";
 const firesJSON = "data/FILTERED_BIG_FIRES.json";
 
+const countiesCSV = "data/CA_counties.csv";
+
+let countyPriceData = {};
+let selectedCountyName = null;
+
+// credit for delay function:
+// https://stackoverflow.com/questions/14226803/wait-5-seconds-before-executing-next-line
+const delay = ms => new Promise(res => setTimeout(res, ms));
+
 ///////////////////////////////////////////////////////////////////////////
 // main map visualization
 ///////////////////////////////////////////////////////////////////////////
@@ -17,11 +26,50 @@ function isValidGeometry(feature) {
     );
 }
 
+
+// Resizable sidebar
+const sidebar = document.getElementById("sidebar");
+const dragHandle = document.getElementById("dragHandle");
+
+let isResizing = false;
+
+dragHandle.addEventListener("mousedown", function (e) {
+    isResizing = true;
+    document.body.style.cursor = "ew-resize";
+    e.preventDefault();
+});
+
+document.addEventListener("mousemove", function (e) {
+    if (!isResizing) return;
+
+    const newWidth = window.innerWidth - e.clientX;
+    const clampedWidth = Math.max(200, Math.min(newWidth, 700)); // optional bounds
+    sidebar.style.width = clampedWidth + "px";
+
+    // Optional: dynamically re-render chart based on new width
+    const countyNameHeader = sidebar.querySelector("h2")?.textContent;
+    if (countyNameHeader && countyPriceData[countyNameHeader]) {
+        const rawRow = countyPriceData[countyNameHeader];
+        const rawData = Object.entries(rawRow).map(([key, value]) => ({ key, value }));
+
+        console.log("header", countyNameHeader);
+
+        drawLineChart(rawData, countyNameHeader);
+    }
+});
+
+document.addEventListener("mouseup", function () {
+    if (isResizing) {
+        isResizing = false;
+        document.body.style.cursor = "default";
+    }
+});
+
+
 let allFires = [];
 const yearSlider = document.getElementById("yearSlider");
 const yearLabel = document.getElementById("yearLabel");
 
-//
 let cityLayer, countyLayer; // Layers to toggle between
 let showingCounties = true; // Views counties by default
 
@@ -29,7 +77,32 @@ Promise.all([
     d3.json(citiesJSON),
     d3.json(countiesJSON),
     d3.json(firesJSON),
-]).then(([cityGeo, countyGeo, fireGeo]) => {
+    d3.csv(countiesCSV, d3.autoType),
+]).then(([cityGeo, countyGeo, fireGeo, countyCSV]) => {
+
+    // You now have access to housingCSV as an array of objects
+    console.log("Housing data loaded:", countyCSV);
+
+    // Process housing data and assign it to a global or scoped variable
+    const countyPriceData = {};
+
+    countyCSV.forEach(row => {
+        const cleanedCounty = row.RegionName.replace(" County", "");
+        const prices = [];
+
+        for (const key in row) {
+            if (key.startsWith("X")) {
+                prices.push({
+                    date: key.slice(1), // e.g., "2000.01.31"
+                    price: +row[key] || null
+                });
+            }
+        }
+
+        countyPriceData[cleanedCounty] = prices;
+    });
+
+
     const svg = d3.select("#map");
 
     const containerRect = svg.node().getBoundingClientRect();
@@ -120,8 +193,7 @@ Promise.all([
     .style("pointer-events", "none")
     .style("opacity", 0);
 
-    function drawFiresByYear(year) 
-    {
+    function drawFiresByYear(year){
         const filtered = allFires.filter(f => f.properties.YEAR_ === year);
 
         const firePaths = fireLayer.selectAll("path.fire")
@@ -163,16 +235,90 @@ Promise.all([
         );
     }
 
-    function handleCountyClick(event, d) {
-        const bounds = path.bounds(d);
-        const dx = bounds[1][0] - bounds[0][0];
-        const dy = bounds[1][1] - bounds[0][1];
-        const x = (bounds[0][0] + bounds[1][0]) / 2;
-        const y = (bounds[0][1] + bounds[1][1]) / 2;
-        const scale = Math.max(1, Math.min(8, 0.9 / Math.max(dx / width, dy / height)));
-        //   const translate = [width / 2 - scale * x, height / 2 - scale * y];
-        const sidebarOffset = 250;  // Match the sidebar width in CSS
-        const translate = [(width - sidebarOffset) / 2 - scale * x, height / 2 - scale * y];
+function drawLineChart(data, countyName) {
+    return;
+    console.log("Drawing line chart for", countyName, "with data:", data);
+
+    // Clean and filter data
+    const cleanData = data
+        .map(d => {
+            const dateStr = d.value?.date;
+            const rawPrice = d.value?.price;
+            if (!dateStr || rawPrice == null || isNaN(+rawPrice)) return null;
+            return {
+                date: new Date(dateStr.replace(/\./g, "-")),
+                price: +rawPrice
+            };
+        })
+        .filter(d => d !== null);
+
+    if (cleanData.length === 0) {
+        console.warn("No valid data to draw for", countyName);
+        return;
+    }
+
+     const container = document.getElementById("priceChart");
+    container.innerHTML = ""; // Clear previous SVG
+
+    const containerWidth = container.clientWidth || 300;
+    const containerHeight = container.clientHeight || 250;
+
+    const margin = { top: 20, right: 30, bottom: 40, left: 60 },
+        width = containerWidth - margin.left - margin.right,
+        height = containerHeight - margin.top - margin.bottom;
+
+    const svg = d3.select("#priceChart")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    const x = d3.scaleTime()
+        .domain(d3.extent(cleanData, d => d.date))
+        .range([0, width]);
+
+    const y = d3.scaleLinear()
+        .domain([0, d3.max(cleanData, d => d.price)]).nice()
+        .range([height, 0]);
+
+    svg.append("g")
+        .attr("transform", `translate(0, ${height})`)
+        .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%Y")));
+
+    svg.append("g")
+        .call(d3.axisLeft(y).ticks(6).tickFormat(d3.format("$,.0f")));
+
+    const line = d3.line()
+        .x(d => x(d.date))
+        .y(d => y(d.price));
+
+    svg.append("path")
+        .datum(cleanData)
+        .attr("fill", "none")
+        .attr("stroke", "#0077cc")
+        .attr("stroke-width", 2)
+        .attr("d", line);
+
+    svg.append("text")
+        .attr("x", width / 2)
+        .attr("y", -8)
+        .attr("text-anchor", "middle")
+        .attr("font-size", "14px")
+        .attr("font-weight", "bold")
+        .text(`Median Home Prices: ${countyName}`);
+}
+
+function handleCountyClick(event, d) {
+    const bounds = path.bounds(d);
+    const dx = bounds[1][0] - bounds[0][0];
+    const dy = bounds[1][1] - bounds[0][1];
+    const x = (bounds[0][0] + bounds[1][0]) / 2;
+    const y = (bounds[0][1] + bounds[1][1]) / 2;
+    const scale = Math.max(1, Math.min(8, 0.9 / Math.max(dx / width, dy / height)));
+
+    const sidebarOffset = 300;
+    const translate = [(width - sidebarOffset) / 2 - scale * x, height / 2 - scale * y];
 
         svg.transition()
             .duration(750)
@@ -181,32 +327,50 @@ Promise.all([
                 d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale)
             );
 
-        // Fill the sidebar
-        const props = d.properties;
-        const sidebar = document.getElementById("sidebar");
-        const sidebarContent = document.getElementById("sidebarContent");
+    const props = d.properties;
+    // Set sidebar content
+    const sidebar = document.getElementById("sidebar");
+    const sidebarContent = document.getElementById("sidebarContent");
+    const mainContent = document.getElementById("mainContent");
 
-        sidebar.innerHTML = `
-            <button id="closeSidebarBtn" style="float:right;">X</button>
-            <h2>${props.NAME || "Unknown County"}</h2>
-            <p><strong>Population:</strong> ${props.POP || "N/A"}</p>
-            <p><strong>Area:</strong> ${props.AREA || "N/A"} sq mi</p>
-        `;
-        //sidebar.style.display = "block";
-        sidebar.classList.add("visible");
-        //document.getElementById("mapContainer").classList.add("with-sidebar");
+    sidebarContent.style.display = "block";
+    document.getElementById("sidebarHeader").innerHTML = d.properties.NAME;
 
-        // Set up close button
-        document.getElementById("closeSidebarBtn").addEventListener("click", () => {
-            //sidebar.style.display = "none";
-            //document.getElementById("mapContainer").classList.remove("with-sidebar");
-            sidebar.classList.remove("visible");
-            sidebarContent.innerHTML = "";
-        });
+    sidebar.classList.add("visible");
+    mainContent.classList.add("with-sidebar");
 
-        // update main line graph
-        updateLineGraphDomainToAll(props.NAME + " County");
-    }
+    // Close logic
+    const closeBtn = document.getElementById("closeSidebarButton");
+    closeBtn.onclick = () => {
+        sidebar.classList.remove("visible");
+        mainContent.classList.remove("with-sidebar");
+        sidebarContent.style.display = "none";
+        selectedCountyName = null;
+    };
+
+    const countyName = d.properties.NAME;
+    selectedCountyName = countyName;
+
+    // Draw the chart (pass raw row object from countyPriceData)
+    // if (countyPriceData && countyPriceData[countyName]) {
+    //     const rawRow = countyPriceData[countyName];
+    //     const rawData = Object.entries(rawRow).map(([key, value]) => ({
+    //         key,
+    //         value
+    //     }));
+    //     // drawLineChart(
+    //     //     rawData,
+    //     //     countyName
+    //     // );
+
+    // } else {
+    //     console.log("⚠️ No price data found for", countyName);
+    // }
+
+
+    // update main line graph
+    updateLineGraphDomainToAll(props.NAME + " County");
+}
 
     // Slider logic
     yearSlider.addEventListener("input", () => {
@@ -593,6 +757,7 @@ const graphContent = d3.select("#graph");
 // ;
 
 function initGraphStyling(){
+    console.log("containerRect", graphContent);
     const containerRect = graphContent.node().getBoundingClientRect();
     
     style.transitionTime = 500;
@@ -847,9 +1012,6 @@ function createLineGraph(){
     
     // link slider to highlighters
     async function updateHighlightedSection(){
-        // credit for delay function:
-        // https://stackoverflow.com/questions/14226803/wait-5-seconds-before-executing-next-line
-        const delay = ms => new Promise(res => setTimeout(res, ms));
         await delay(10);
 
         const startDate = new Date(yearSlider.value, 0, 1); // January 1st of the selected year
@@ -1029,3 +1191,16 @@ function updateLineGraphDomainToYear(year = null){
 
     updateLineGraph();
 }
+
+
+// const sidebar = document.getElementById("sidebar");
+
+const resizeObserver = new ResizeObserver(() => {
+  if (selectedCountyName && countyPriceData[selectedCountyName]) {
+    const rawRow = countyPriceData[selectedCountyName];
+    const rawData = Object.entries(rawRow).map(([key, value]) => ({ key, value }));
+    drawLineChart(rawData, selectedCountyName);
+  }
+});
+
+resizeObserver.observe(sidebar);

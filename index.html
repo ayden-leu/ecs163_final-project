@@ -10,9 +10,10 @@
   </head>
 
   <body>
-      <div id="graphContainer">
-        <svg id="graph"></svg>
-      </div>
+     
+      <div id = "mainContent">
+        
+
         <div id="mapContainer">
           <div id="controls">
             <label for="yearSlider">
@@ -23,10 +24,17 @@
           <svg id="map"></svg>
         </div>
         <!-- Sidebar for county/city/fire information -->
-        <div id="sidebar">
+        <div id="sidebar" class="resizable">
+          <div id = "dragHandle"></div>
           <button id="closeSidebarButton">x</button>
-          <div id="sidebarContent"></div>
+          <div id="sidebarContent">
+              <h2 id="sidebarHeader">Unknown County</h2>
+              <div id="graphContainer" style="width: 100%; height: 250px;">
+              <svg id="graph"></svg>
+            </div>
+          </div>
         </div>
+      </div>
 
 
     <script src="main.js" defer type="module"></script>
