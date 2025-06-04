@@ -221,42 +221,55 @@ Promise.all([
 
   const zoom = d3
     .zoom()
-    .scaleExtent([1, 20])
+    .scaleExtent([1, 25])
     .on("zoom", (event) => {
-      zoomGroup.attr("transform", event.transform);
+    zoomGroup.attr("transform", event.transform);
 
-      const currentZoom = event.transform.k;
+    const currentZoom = event.transform.k;
 
-      let countyOpacity = 0;
+    // County label opacity (unchanged from your version)
+    let countyOpacity = 0;
+    if (currentZoom >= 1.5 && currentZoom < 2.5) {
+      countyOpacity = (currentZoom - 1.5) / (2.5 - 1.5);
+    } else if (currentZoom >= 2.5 && currentZoom <= 5) {
+      countyOpacity = 1;
+    } else if (currentZoom > 5 && currentZoom < 9) {
+      countyOpacity = 1 - (currentZoom - 5) / (9 - 5);
+    } else {
+      countyOpacity = 0;
+    }
 
-      if (currentZoom >= 1.5 && currentZoom < 2.5) {
-        countyOpacity = (currentZoom - 1.5) / (2.5 - 1.5);
-      } else if (currentZoom >= 2.5 && currentZoom <= 5) {
-        countyOpacity = 1;
-      } else if (currentZoom > 5 && currentZoom < 9) {
-        countyOpacity = 1 - (currentZoom - 5) / (9 - 5);
-      } else {
-        countyOpacity = 0;
-      }
+    // City label opacity: fade in from zoom 5 → 10
+    const cityOpacity =
+      currentZoom >= 5 && currentZoom < 10
+        ? (currentZoom - 5) / (10 - 5)
+        : currentZoom >= 10
+        ? 1
+        : 0;
 
-      const cityOpacity =
-        currentZoom > 4 ? Math.min(1, (currentZoom - 4) / 2) : 0;
+    // County label font size
+    countyLabelLayer
+      .selectAll("text")
+      .attr("opacity", countyOpacity)
+      .attr(
+        "font-size",
+        (d) => `${Math.max(6, 10 - (currentZoom - 1) * 1.5)}px`
+      );
 
-      countyLabelLayer
-        .selectAll("text")
-        .attr("opacity", countyOpacity)
-        .attr(
-          "font-size",
-          (d) => `${Math.max(6, 10 - (currentZoom - 1) * 1.5)}px`
-        );
-
-      cityLabelLayer
-        .selectAll("text")
-        .attr("opacity", cityOpacity)
-        .attr("font-size", (d) => Math.max(0.5, 8 / (currentZoom / 2)) + "px");
-
-      cityLabelLayer.selectAll("text").attr("opacity", cityOpacity);
-    });
+    // City label font size: starts smaller, scales very gently
+    cityLabelLayer
+      .selectAll("text")
+      .attr("opacity", cityOpacity)
+      .attr(
+        "font-size",
+        (d) => {
+          const minSize = 0.7;  // at zoom 20
+          const maxSize = 20;  // at zoom 5-6
+          const size = Math.max(minSize, maxSize / currentZoom);
+          return `${size}px`;
+        }
+      );
+  });
 
   svg.call(zoom);
   // svg.call(
