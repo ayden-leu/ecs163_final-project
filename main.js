@@ -5,8 +5,10 @@ const countiesJSON = "data/FILTERED_COUNTY_LINES.json";
 const firesJSON = "data/FILTERED_BIG_FIRES.json";
 
 const countiesCSV = "data/CA_counties.csv";
+const citiesCSV = "data/ZILLOW_DATA_CITIES.csv";
 
 let countyPriceData = {};
+let cityPriceData = {};
 let selectedCountyName = null;
 
 ///////////////////////////////////////////////////////////////////////////
@@ -73,13 +75,13 @@ Promise.all([
     d3.json(countiesJSON),
     d3.json(firesJSON),
     d3.csv(countiesCSV, d3.autoType),
-]).then(([cityGeo, countyGeo, fireGeo, countyCSV]) => {
+    d3.csv(citiesCSV, d3.autoType),
+]).then(([cityGeo, countyGeo, fireGeo, countyCSV, cityCSV]) => {
 
-    // You now have access to housingCSV as an array of objects
-    console.log("Housing data loaded:", countyCSV);
-
-    // Process housing data and assign it to a global or scoped variable
+    // Process county housing data and assign it to a global or scoped variable
     const countyPriceData = {};
+    // Same but for cities
+    const cityPriceData = {};
 
     countyCSV.forEach(row => {
         const cleanedCounty = row.RegionName.replace(" County", "");
@@ -96,6 +98,23 @@ Promise.all([
 
         countyPriceData[cleanedCounty] = prices;
     });
+
+    cityCSV.forEach(row => {
+        const cleanedCity = row.RegionName.replace(" City", "");
+        //const county = row.CountyName.replace(" County", "");
+        const prices = [];
+
+        for(const key in row){
+            if (key.startsWith("2")){
+                prices.push({
+                    date: key,
+                    price: +row[key] || null
+                })
+            }
+        }
+        cityPriceData[cleanedCity] = prices;
+    });
+    console.log("Example city keys:", Object.keys(cityPriceData).slice(0, 10));
 
 
     const svg = d3.select("#map");
@@ -169,7 +188,8 @@ Promise.all([
         .attr("stroke", "#888")
         .attr("stroke-width", 0.1)
         .attr("stroke-opacity", 0.6)
-        .attr("shape-rendering", "crispEdges");
+        .attr("shape-rendering", "crispEdges")
+        .on("click", handleCityClick);
         
 
     // Fires (top layer)
@@ -361,6 +381,57 @@ function drawLineChart(data, countyName) {
     }
 
 
+}
+
+function handleCityClick(event, d) {
+    const bounds = path.bounds(d);
+  const dx = bounds[1][0] - bounds[0][0];
+  const dy = bounds[1][1] - bounds[0][1];
+  const x = (bounds[0][0] + bounds[1][0]) / 2;
+  const y = (bounds[0][1] + bounds[1][1]) / 2;
+  const scale = Math.max(1, Math.min(8, 0.9 / Math.max(dx / width, dy / height)));
+
+  const sidebarOffset = 300;
+  const translate = [(width - sidebarOffset) / 2 - scale * x, height / 2 - scale * y];
+
+  svg.transition()
+    .duration(750)
+    .call(
+      zoom.transform,
+      d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale)
+    );
+
+  const cityName = d.properties.CITY;
+  console.log("Clicked city:", cityName);
+
+  const sidebar = document.getElementById("sidebar");
+  const sidebarContent = document.getElementById("sidebarContent");
+  const mainContent = document.getElementById("mainContent");
+
+  sidebarContent.innerHTML = `
+    <h2>${cityName}</h2>
+    <div id="priceChart" style="width: 100%; height: 250px;"></div>
+  `;
+  sidebar.classList.add("visible");
+  mainContent.classList.add("with-sidebar");
+
+  const closeBtn = document.getElementById("closeSidebarButton");
+  closeBtn.onclick = () => {
+    sidebar.classList.remove("visible");
+    mainContent.classList.remove("with-sidebar");
+    sidebarContent.innerHTML = "";
+  };
+
+  if (cityPriceData && cityPriceData[cityName]) {
+    const rawRow = cityPriceData[cityName];
+    const rawData = Object.entries(rawRow).map(([key, value]) => ({
+      key,
+      value
+    }));
+    drawLineChart(rawData, cityName);
+  } else {
+    console.warn("⚠️ No price data found for", cityName);
+  }
 }
 
     // Slider logic
