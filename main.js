@@ -188,6 +188,7 @@ Promise.all([
   const sideBar = document.getElementById("sidebar"); // Sidebar DOM element
 
   const validCities = cityGeo.features.filter(isValidGeometry);
+  console.log(validCities[0].properties);
   const validCounties = countyGeo.features.filter(isValidGeometry);
   const validFires = fireGeo.features.filter(isValidGeometry);
 
@@ -236,6 +237,11 @@ Promise.all([
           "font-size",
           (d) => `${Math.max(8, 12 - (currentZoom - 1) * 1.5)}px`
         );
+
+      cityLabelLayer
+        .selectAll("text")
+        .attr("opacity", cityOpacity)
+        .attr("font-size", (d) => Math.max(0.5, 8 / (currentZoom/2)) + "px");
 
       cityLabelLayer.selectAll("text").attr("opacity", cityOpacity);
     });
@@ -288,7 +294,7 @@ Promise.all([
       const centroid = path.centroid(d);
       return `translate(${centroid[0]}, ${centroid[1]})`;
     })
-    .text((d) => d.properties.NAME)
+    .text((d) => d.properties.CITY)
     .attr("opacity", 0);
 
   // Sets up the tooltips for the fires, appends the tooltip div to the body and styles it

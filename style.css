@@ -213,7 +213,6 @@ svg#map {
 
 .city-label {
   text-anchor: middle;
-  font-size: 10px;
   fill: #555;
   pointer-events: none;
 }
