@@ -156,7 +156,7 @@ Promise.all([
                     tooltip.style("opacity", 0);
                 })
                 
-                .on("click", (event, data) => handleFireClick(data.properties)),
+                .on("click", (event, data) => updateLineGraphDomainToYear(data.properties.YEAR_)),
 
             update => update,
             exit => exit.remove()
@@ -205,7 +205,7 @@ Promise.all([
         });
 
         // update main line graph
-        anotherHandleCountyClicked(props);
+        updateLineGraphDomainToAll(props.NAME + " County");
     }
 
     // Slider logic
@@ -594,7 +594,7 @@ const graphContent = d3.select("#graph");
 function initGraphStyling(){
     const containerRect = graphContent.node().getBoundingClientRect();
     
-    style.transitionTime = 100;
+    style.transitionTime = 500;
 
     style.lineGraph = {};
     style.lineGraph.content = {
@@ -652,14 +652,21 @@ function getEntryByAspect(dataset, aspect, value){
     }
 }
 
-function anotherHandleCountyClicked(countyProps){
+function updateLineGraphDomainToAll(countyName){
     // const selectedCity = getEntryByAspect(lineGraphPriceData, "name", countyProps.NAME + " County");
     lineGraphObj.x.tickFormat = function(date){
         return d3.timeFormat("'%y")(date);
     }
     lineGraphObj.x.domain = d3.extent(lineGraphPriceDataDates);
 
-    updateLineGraph(countyProps.NAME);
+    if(lineGraphObj.currentCountyData !== null){
+        lineGraphObj.y.domain = [  // round down as the precision caused errors in the min max evaluations
+            d3.min(lineGraphObj.currentCountyData.prices, entry => Math.floor(entry.value)),
+            d3.max(lineGraphObj.currentCountyData.prices, entry => Math.floor(entry.value))
+        ];
+    }
+
+    updateLineGraph(countyName);
 }
 
 let lineGraphPriceData = null;
@@ -684,13 +691,17 @@ d3.csv(zillowDataset).then(rawData =>{
     // create line graph
     lineGraphObj = createLineGraph();
 
-    // draw line
-    // const selectedCity = getEntryByAspect(lineGraphPriceData, "name", "Yolo County");
-    // updateLineGraph(selectedCity, lineGraphObj);
+    // add another event listener to yearSlider
+    yearSlider.addEventListener("input", yearSliderEventWrapper);
+    yearSlider.addEventListener("click", yearSliderEventWrapper);
 
     }).catch(function(error){
     console.log(error);
 });
+
+function yearSliderEventWrapper(){
+    updateLineGraphDomainToAll(null);
+}
 
 function createLineGraph(){
     // create lineGraph elements
@@ -745,6 +756,7 @@ function createLineGraph(){
 
     // line
     const lineGraphLine = lineGraph.append("path")
+        .attr("id", "lineGraphLine")
         .attr("transform", `translate(${style.lineGraph.content.offset.x}, ${style.lineGraph.content.offset.y})`)
         .attr("fill", "none")
         .attr("stroke", style.lineGraph.line.color.default)
@@ -801,6 +813,7 @@ function createLineGraph(){
         .style("fill", style.lineGraph.highlighter.color)
         .attr("height", style.lineGraph.height)
         .style("opacity", 0)
+        .attr("id", "lineGraphSectionHighlighter")
     ;
 
     // clip line to within graph area
@@ -816,10 +829,12 @@ function createLineGraph(){
 
     // highlighted section of line
     const lineGraphLineHighlighted = lineGraph.append("path")
+        .attr("id", "lineGraphLineHighlighted")
         .attr("transform", `translate(${style.lineGraph.content.offset.x}, ${style.lineGraph.content.offset.y})`)
         .attr("fill", "none")
+        .style("opacity", 0)
         .attr("stroke", style.lineGraph.line.color.highlighted)
-        .attr("stroke-width", style.lineGraph.line.width)
+        .attr("stroke-width", style.lineGraph.line.width + 1)
     ;
     const lineHighlightedClipPath = lineGraph.append("clipPath")
         .attr("id", "lineHighlightedClipPath")
@@ -830,24 +845,37 @@ function createLineGraph(){
     lineGraphLineHighlighted.attr("clip-path", "url(#lineHighlightedClipPath)");
     
     // link slider to highlighters
-    function updateHighlightedSection(){
+    async function updateHighlightedSection(){
+        // credit for delay function:
+        // https://stackoverflow.com/questions/14226803/wait-5-seconds-before-executing-next-line
+        const delay = ms => new Promise(res => setTimeout(res, ms));
+        await delay(10);
+
         const startDate = new Date(yearSlider.value, 0, 1); // January 1st of the selected year
         const endDate = new Date(yearSlider.value, 11, 31); // December 31st of the selected year
 
         const startX = lineGraphRangeX(startDate);
         const endX = lineGraphRangeX(endDate);
 
+        // d3.select("#lineGraphLineHighlighted").style("opacity", 1);
+
         sectionHighlighter
             .attr("x", startX)
             .attr("width", endX - startX)
+            .transition().duration(style.transitionTime)
             .style("opacity", style.lineGraph.highlighter.opacity)
         ;
         lineHighlightedClipArea
             .attr("x", startX)
             .attr("width", endX - startX)
         ;
+        lineGraphLineHighlighted
+            .transition("updateHighlight").duration(style.transitionTime)
+            .style("opacity", 1)
+        ;
     }
     yearSlider.addEventListener("input", updateHighlightedSection);
+    yearSlider.addEventListener("click", updateHighlightedSection);
 
     // tooltip + circle
     const focusCircle = lineGraph.append("circle")
@@ -898,13 +926,15 @@ function createLineGraph(){
 function updateLineGraph(countyName = null){
     // if data is null, then don't update the data used in the graph
     if(countyName !== null){
-        lineGraphObj.currentCountyData = getEntryByAspect(lineGraphPriceData, "name", countyName + " County");
+        lineGraphObj.currentCountyData = getEntryByAspect(lineGraphPriceData, "name", countyName);
         lineGraphObj.y.domain = [  // round down as the precision caused errors in the min max evaluations
             d3.min(lineGraphObj.currentCountyData.prices, entry => Math.floor(entry.value)),
             d3.max(lineGraphObj.currentCountyData.prices, entry => Math.floor(entry.value))
         ];
     }
+    
     const data = lineGraphObj.currentCountyData;
+    // console.log("egg", data);
 
     // update graph ranges
     lineGraphObj.x.scale.domain(lineGraphObj.x.domain);
@@ -940,7 +970,7 @@ function updateLineGraph(countyName = null){
     ;
     lineGraphObj.line.highlighted
         .datum(data.prices)
-        .transition().duration(style.transitionTime)
+        .transition("updateLine").duration(style.transitionTime)
         .attr("d", d3.line()
             .x(entry => lineGraphObj.x.scale(entry.date))
             .y(entry => lineGraphObj.y.scale(entry.value))
@@ -972,10 +1002,14 @@ function updateLineGraph(countyName = null){
     ;
 }
 
-function handleFireClick(data){
+function updateLineGraphDomainToYear(year = null){
     // console.log("lineGraphObj.x.domain", lineGraphObj.x.domain);
     // console.log("data", data);
-    lineGraphObj.x.domain = [new Date(data.YEAR_-1, 11, 1), new Date(data.YEAR_+1, 0, 31)];
+
+    d3.select("#lineGraphSectionHighlighter").style("opacity", 0);
+    d3.select("#lineGraphLineHighlighted").style("opacity", 0);
+
+    lineGraphObj.x.domain = [new Date(year-1, 11, 1), new Date(year+1, 0, 31)];
     lineGraphObj.x.tickFormat = function(date){
         return d3.timeFormat("%b  '%y")(date);
     }
