@@ -17,15 +17,14 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
 // main map visualization
 ///////////////////////////////////////////////////////////////////////////
 function isValidGeometry(feature) {
-    const geom = feature.geometry;
-    return (
-        geom &&
-        geom.coordinates &&
-        geom.coordinates.length > 0 &&
-        (geom.type === "Polygon" || geom.type === "MultiPolygon")
-    );
+  const geom = feature.geometry;
+  return (
+    geom &&
+    geom.coordinates &&
+    geom.coordinates.length > 0 &&
+    (geom.type === "Polygon" || geom.type === "MultiPolygon")
+  );
 }
-
 
 // Resizable sidebar
 const sidebar = document.getElementById("sidebar");
@@ -46,16 +45,16 @@ document.addEventListener("mousemove", function (e) {
     const clampedWidth = Math.max(200, Math.min(newWidth, 700)); // optional bounds
     sidebar.style.width = clampedWidth + "px";
 
-    // Optional: dynamically re-render chart based on new width
-    const countyNameHeader = sidebar.querySelector("h2")?.textContent;
-    if (countyNameHeader && countyPriceData[countyNameHeader]) {
-        const rawRow = countyPriceData[countyNameHeader];
-        const rawData = Object.entries(rawRow).map(([key, value]) => ({ key, value }));
-
-        console.log("header", countyNameHeader);
-
-        drawLineChart(rawData, countyNameHeader);
-    }
+  // Optional: dynamically re-render chart based on new width
+  const countyNameHeader = sidebar.querySelector("h2")?.textContent;
+  if (countyNameHeader && countyPriceData[countyNameHeader]) {
+    const rawRow = countyPriceData[countyNameHeader];
+    const rawData = Object.entries(rawRow).map(([key, value]) => ({
+      key,
+      value,
+    }));
+    drawLineChart(rawData, countyNameHeader);
+  }
 });
 
 document.addEventListener("mouseup", function () {
@@ -65,7 +64,6 @@ document.addEventListener("mouseup", function () {
     }
 });
 
-
 let allFires = [];
 const yearSlider = document.getElementById("yearSlider");
 const yearLabel = document.getElementById("yearLabel");
@@ -74,114 +72,236 @@ let cityLayer, countyLayer; // Layers to toggle between
 let showingCounties = true; // Views counties by default
 
 Promise.all([
-    d3.json(citiesJSON),
-    d3.json(countiesJSON),
-    d3.json(firesJSON),
-    d3.csv(countiesCSV, d3.autoType),
+  d3.json(citiesJSON),
+  d3.json(countiesJSON),
+  d3.json(firesJSON),
+  d3.csv(countiesCSV, d3.autoType),
 ]).then(([cityGeo, countyGeo, fireGeo, countyCSV]) => {
+  searchInput.addEventListener("input", () => {
+    const query = searchInput.value.trim().toLowerCase();
+    if (!query) {
+      searchSuggestions.style.display = "none";
+      searchSuggestions.innerHTML = "";
+      return;
+    }
 
-    // You now have access to housingCSV as an array of objects
-    console.log("Housing data loaded:", countyCSV);
+    const allNames = [
+      ...validCounties.map((d) => ({
+        name: d.properties.NAME,
+        type: "county",
+        feature: d,
+      })),
+      ...validCities.map((d) => ({
+        name: d.properties.CITY,
+        type: "city",
+        feature: d,
+      })),
+    ];
 
-    // Process housing data and assign it to a global or scoped variable
-    const countyPriceData = {};
+    const matches = allNames
+      .filter((d) => d.name && d.name.toLowerCase().includes(query))
+      .slice(0, 5);
 
-    countyCSV.forEach(row => {
-        const cleanedCounty = row.RegionName.replace(" County", "");
-        const prices = [];
+    if (matches.length === 0) {
+      searchSuggestions.style.display = "none";
+      searchSuggestions.innerHTML = "";
+      return;
+    }
 
-        for (const key in row) {
-            if (key.startsWith("X")) {
-                prices.push({
-                    date: key.slice(1), // e.g., "2000.01.31"
-                    price: +row[key] || null
-                });
-            }
+    // Show dropdown
+    searchSuggestions.style.display = "block";
+    searchSuggestions.innerHTML = matches
+      .map(
+        (d) => `
+        <div class="suggestion-item">
+            ${d.name} <span style="color: #888; font-size: 12px;">(${d.type})</span>
+        </div>
+    `
+      )
+      .join("");
+
+    // Add click handlers
+    Array.from(searchSuggestions.children).forEach((child, i) => {
+      child.addEventListener("click", () => {
+        const selected = matches[i];
+        searchInput.value = selected.name;
+        searchSuggestions.style.display = "none";
+
+        if (selected.type === "county") {
+          handleCountyClick(null, selected.feature);
+        } else {
+          // TODO: load in county data later
+          const bounds = path.bounds(selected.feature);
+          const dx = bounds[1][0] - bounds[0][0];
+          const dy = bounds[1][1] - bounds[0][1];
+          const x = (bounds[0][0] + bounds[1][0]) / 2;
+          const y = (bounds[0][1] + bounds[1][1]) / 2;
+          const scale = Math.max(
+            1,
+            Math.min(8, 0.9 / Math.max(dx / width, dy / height))
+          );
+
+          const sidebarOffset = 300;
+          const translate = [
+            (width - sidebarOffset) / 2 - scale * x,
+            height / 2 - scale * y,
+          ];
+
+          svg
+            .transition()
+            .duration(750)
+            .call(
+              zoom.transform,
+              d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale)
+            );
         }
+      });
+    });
+  });
 
-        countyPriceData[cleanedCounty] = prices;
+  // You now have access to housingCSV as an array of objects
+  console.log("Housing data loaded:", countyCSV);
+
+  // Process housing data and assign it to a global or scoped variable
+  const countyPriceData = {};
+
+  countyCSV.forEach((row) => {
+    const cleanedCounty = row.RegionName.replace(" County", "");
+    const prices = [];
+
+    for (const key in row) {
+      if (key.startsWith("X")) {
+        prices.push({
+          date: key.slice(1), // e.g., "2000.01.31"
+          price: +row[key] || null,
+        });
+      }
+    }
+
+    countyPriceData[cleanedCounty] = prices;
+  });
+
+  const svg = d3.select("#map");
+
+  const containerRect = svg.node().getBoundingClientRect();
+  const width = +containerRect.width;
+  const height = +containerRect.height;
+
+//   const sideBar = document.getElementById("sidebar"); // Sidebar DOM element
+
+  const validCities = cityGeo.features.filter(isValidGeometry);
+  console.log(validCities[0].properties);
+  const validCounties = countyGeo.features.filter(isValidGeometry);
+  const validFires = fireGeo.features.filter(isValidGeometry);
+
+  allFires = validFires;
+
+  const combined = {
+    type: "FeatureCollection",
+    features: validCities.concat(validCounties),
+  };
+
+  const projection = d3
+    .geoConicConformal()
+    .parallels([34, 40.5])
+    .rotate([120])
+    .fitSize([width, height], combined);
+
+  const path = d3.geoPath().projection(projection);
+
+  const zoomGroup = svg.append("g").attr("class", "zoom-layer");
+
+  // Correct order:
+  const countyLayer = zoomGroup.append("g").attr("class", "counties");
+  const cityLayer = zoomGroup.append("g").attr("class", "cities");
+  const fireLayer = zoomGroup.append("g").attr("class", "fire-layer");
+
+  const countyLabelLayer = zoomGroup.append("g").attr("class", "county-labels");
+  const cityLabelLayer = zoomGroup.append("g").attr("class", "city-labels");
+
+  const zoom = d3
+    .zoom()
+    .scaleExtent([1, 20])
+    .on("zoom", (event) => {
+      zoomGroup.attr("transform", event.transform);
+
+      const currentZoom = event.transform.k;
+
+      const countyOpacity =
+        currentZoom < 4 ? 1 : Math.max(0, 1 - (currentZoom - 4));
+      const cityOpacity =
+        currentZoom > 3 ? Math.min(1, (currentZoom - 3) / 2) : 0;
+
+      countyLabelLayer
+        .selectAll("text")
+        .attr("opacity", countyOpacity)
+        .attr(
+          "font-size",
+          (d) => `${Math.max(8, 12 - (currentZoom - 1) * 1.5)}px`
+        );
+
+      cityLabelLayer
+        .selectAll("text")
+        .attr("opacity", cityOpacity)
+        .attr("font-size", (d) => Math.max(0.5, 8 / (currentZoom/2)) + "px");
+
+      cityLabelLayer.selectAll("text").attr("opacity", cityOpacity);
     });
 
+  svg.call(zoom);
+  // svg.call(
+  //     d3.zoom()
+  //         .scaleExtent([1, 20])
+  //         .on("zoom", (event) => {
+  //             zoomGroup.attr("transform", event.transform);
+  //         })
+  // );
 
-    const svg = d3.select("#map");
+  // Counties (underneath)
+  countyLayer
+    .selectAll("path.county")
+    .data(validCounties)
+    .join("path")
+    .attr("class", "county")
+    .attr("d", path)
+    .on("click", handleCountyClick);
 
-    const containerRect = svg.node().getBoundingClientRect();
-    const width = +containerRect.width;
-    const height = +containerRect.height;
+  // Cities (middle layer)
+  cityLayer
+    .selectAll("path.city")
+    .data(validCities)
+    .join("path")
+    .attr("class", "city")
+    .attr("d", path);
 
-    const sideBar = document.getElementById("sidebar"); // Sidebar DOM element
+  // Names / labels
+  countyLabelLayer
+    .selectAll("text")
+    .data(validCounties)
+    .join("text")
+    .attr("class", "county-label")
+    .attr("transform", (d) => {
+      const centroid = path.centroid(d);
+      return `translate(${centroid[0]}, ${centroid[1]})`;
+    })
+    .text((d) => d.properties.NAME)
+    .attr("opacity", 1);
 
-    const validCities = cityGeo.features.filter(isValidGeometry);
-    const validCounties = countyGeo.features.filter(isValidGeometry);
-    const validFires = fireGeo.features.filter(isValidGeometry);
+  cityLabelLayer
+    .selectAll("text")
+    .data(validCities)
+    .join("text")
+    .attr("class", "city-label")
+    .attr("transform", (d) => {
+      const centroid = path.centroid(d);
+      return `translate(${centroid[0]}, ${centroid[1]})`;
+    })
+    .text((d) => d.properties.CITY)
+    .attr("opacity", 0);
 
-    allFires = validFires;
-
-    const combined = {
-        type: "FeatureCollection",
-        features: validCities.concat(validCounties),
-    };
-
-    const projection = d3
-        .geoConicConformal()
-        .parallels([34, 40.5])
-        .rotate([120])
-        .fitSize([width, height], combined);
-
-    const path = d3.geoPath().projection(projection);
-
-    const zoomGroup = svg.append("g").attr("class", "zoom-layer");
-
-    const zoom = d3.zoom()
-        .scaleExtent([1, 20])
-        .on("zoom", (event) => {
-            zoomGroup.attr("transform", event.transform);
-        });
-    
-    svg.call(zoom);
-    // svg.call(
-    //     d3.zoom()
-    //         .scaleExtent([1, 20])
-    //         .on("zoom", (event) => {
-    //             zoomGroup.attr("transform", event.transform);
-    //         })
-    // );
-
-    // Counties (underneath)
-    zoomGroup
-        .append("g")
-        .selectAll("path.county")
-        .data(validCounties)
-        .join("path")
-        .attr("class", "county")
-        .attr("d", path)
-        .attr("fill", "#f0f0f0")
-        .attr("stroke", "#aaa")
-        .attr("stroke-width", 0.2)
-        .attr("shape-rendering", "crispEdges")
-        .on("click", handleCountyClick);
-
-
-    // Cities (middle layer)
-    zoomGroup
-        .append("g")
-        .selectAll("path.city")
-        .data(validCities)
-        .join("path")
-        .attr("class", "city")
-        .attr("d", path)
-        .attr("fill", "#555")
-        .attr("stroke", "#888")
-        .attr("stroke-width", 0.1)
-        .attr("stroke-opacity", 0.6)
-        .attr("shape-rendering", "crispEdges");
-        
-
-    // Fires (top layer)
-    const fireLayer = zoomGroup.append("g").attr("class", "fire-layer");
-
-    // Sets up the tooltips for the fires, appends the tooltip div to the body and styles it
-    const tooltip = d3.select("body")
+  // Sets up the tooltips for the fires, appends the tooltip div to the body and styles it
+  const tooltip = d3
+    .select("body")
     .append("div")
     .attr("class", "fire-tooltip")
     .style("position", "absolute")
@@ -196,24 +316,34 @@ Promise.all([
     function drawFiresByYear(year){
         const filtered = allFires.filter(f => f.properties.YEAR_ === year);
 
-        const firePaths = fireLayer.selectAll("path.fire")
-            .data(filtered, d => d.properties.IRWINID || JSON.stringify(d.geometry));
+    const firePaths = fireLayer
+      .selectAll("path.fire")
+      .data(
+        filtered,
+        (d) => d.properties.IRWINID || JSON.stringify(d.geometry)
+      );
 
-        firePaths.join(
-            enter => enter.append("path")
-                .attr("class", "fire")
-                .attr("d", path)
-                .attr("fill", "orange")
-                .attr("opacity", 0.5)
-                .attr("stroke", "#ff8800")
-                .attr("stroke-width", 0.2)
+    firePaths.join(
+      (enter) =>
+        enter
+          .append("path")
+          .attr("class", "fire")
+          .attr("d", path)
+          .attr("fill", "orange")
+          .attr("opacity", 0.5)
+          .attr("stroke", "#ff8800")
+          .attr("stroke-width", 0.2)
 
-                // Tooltip events below; When mouse goes over a fire, show the tooltip with fire details (name, year, and acreage)
-                .on("mouseover", (event, d) => {
-                    const props = d.properties;
-                    tooltip.style("opacity", 1)
-                        .html(`
-                            <strong>${props.FIRE_NAME || "Unknown Fire"}</strong><br/>
+          // Tooltip events below; When mouse goes over a fire, show the tooltip with fire details (name, year, and acreage)
+          .on("mouseover", (event, d) => {
+            const props = d.properties;
+            tooltip
+              .style("opacity", 1)
+              .html(
+                `
+                            <strong>${
+                              props.FIRE_NAME || "Unknown Fire"
+                            }</strong><br/>
                             <strong>Year:</strong> ${props.YEAR_ || "N/A"}<br/>
                             <strong>Acres:</strong> ${props.GIS_ACRES?.toLocaleString() || "N/A"}
                         `)
@@ -230,10 +360,10 @@ Promise.all([
                 
                 .on("click", (event, data) => updateLineGraphDomainToYear(data.properties.YEAR_)),
 
-            update => update,
-            exit => exit.remove()
-        );
-    }
+      (update) => update,
+      (exit) => exit.remove()
+    );
+  }
 
 function drawLineChart(data, countyName) {
     return;
@@ -241,73 +371,82 @@ function drawLineChart(data, countyName) {
 
     // Clean and filter data
     const cleanData = data
-        .map(d => {
-            const dateStr = d.value?.date;
-            const rawPrice = d.value?.price;
-            if (!dateStr || rawPrice == null || isNaN(+rawPrice)) return null;
-            return {
-                date: new Date(dateStr.replace(/\./g, "-")),
-                price: +rawPrice
-            };
-        })
-        .filter(d => d !== null);
+      .map((d) => {
+        const dateStr = d.value?.date;
+        const rawPrice = d.value?.price;
+        if (!dateStr || rawPrice == null || isNaN(+rawPrice)) return null;
+        return {
+          date: new Date(dateStr.replace(/\./g, "-")),
+          price: +rawPrice,
+        };
+      })
+      .filter((d) => d !== null);
 
     if (cleanData.length === 0) {
-        console.warn("No valid data to draw for", countyName);
-        return;
+      console.warn("No valid data to draw for", countyName);
+      return;
     }
 
-     const container = document.getElementById("priceChart");
+    const container = document.getElementById("priceChart");
     container.innerHTML = ""; // Clear previous SVG
 
     const containerWidth = container.clientWidth || 300;
     const containerHeight = container.clientHeight || 250;
 
     const margin = { top: 20, right: 30, bottom: 40, left: 60 },
-        width = containerWidth - margin.left - margin.right,
-        height = containerHeight - margin.top - margin.bottom;
+      width = containerWidth - margin.left - margin.right,
+      height = containerHeight - margin.top - margin.bottom;
 
-    const svg = d3.select("#priceChart")
-        .append("svg")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
-        .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
+    const svg = d3
+      .select("#priceChart")
+      .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    const x = d3.scaleTime()
-        .domain(d3.extent(cleanData, d => d.date))
-        .range([0, width]);
+    const x = d3
+      .scaleTime()
+      .domain(d3.extent(cleanData, (d) => d.date))
+      .range([0, width]);
 
-    const y = d3.scaleLinear()
-        .domain([0, d3.max(cleanData, d => d.price)]).nice()
-        .range([height, 0]);
+    const y = d3
+      .scaleLinear()
+      .domain([0, d3.max(cleanData, (d) => d.price)])
+      .nice()
+      .range([height, 0]);
 
-    svg.append("g")
-        .attr("transform", `translate(0, ${height})`)
-        .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%Y")));
+    svg
+      .append("g")
+      .attr("transform", `translate(0, ${height})`)
+      .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%Y")));
 
-    svg.append("g")
-        .call(d3.axisLeft(y).ticks(6).tickFormat(d3.format("$,.0f")));
+    svg
+      .append("g")
+      .call(d3.axisLeft(y).ticks(6).tickFormat(d3.format("$,.0f")));
 
-    const line = d3.line()
-        .x(d => x(d.date))
-        .y(d => y(d.price));
+    const line = d3
+      .line()
+      .x((d) => x(d.date))
+      .y((d) => y(d.price));
 
-    svg.append("path")
-        .datum(cleanData)
-        .attr("fill", "none")
-        .attr("stroke", "#0077cc")
-        .attr("stroke-width", 2)
-        .attr("d", line);
+    svg
+      .append("path")
+      .datum(cleanData)
+      .attr("fill", "none")
+      .attr("stroke", "#0077cc")
+      .attr("stroke-width", 2)
+      .attr("d", line);
 
-    svg.append("text")
-        .attr("x", width / 2)
-        .attr("y", -8)
-        .attr("text-anchor", "middle")
-        .attr("font-size", "14px")
-        .attr("font-weight", "bold")
-        .text(`Median Home Prices: ${countyName}`);
-}
+    svg
+      .append("text")
+      .attr("x", width / 2)
+      .attr("y", -8)
+      .attr("text-anchor", "middle")
+      .attr("font-size", "14px")
+      .attr("font-weight", "bold")
+      .text(`Median Home Prices: ${countyName}`);
+  }
 
 function handleCountyClick(event, d) {
     const bounds = path.bounds(d);
@@ -372,15 +511,15 @@ function handleCountyClick(event, d) {
     updateLineGraphDomainToAll(props.NAME + " County");
 }
 
-    // Slider logic
-    yearSlider.addEventListener("input", () => {
-        const year = +yearSlider.value;
-        yearLabel.textContent = year;
-        drawFiresByYear(year);
-    });
+  // Slider logic
+  yearSlider.addEventListener("input", () => {
+    const year = +yearSlider.value;
+    yearLabel.textContent = year;
+    drawFiresByYear(year);
+  });
 
-    // Initial render
-    drawFiresByYear(+yearSlider.value);
+  // Initial render
+  drawFiresByYear(+yearSlider.value);
 });
 
 ///////////////////////////////////////////////////////////////////////////
@@ -1198,7 +1337,10 @@ function updateLineGraphDomainToYear(year = null){
 const resizeObserver = new ResizeObserver(() => {
   if (selectedCountyName && countyPriceData[selectedCountyName]) {
     const rawRow = countyPriceData[selectedCountyName];
-    const rawData = Object.entries(rawRow).map(([key, value]) => ({ key, value }));
+    const rawData = Object.entries(rawRow).map(([key, value]) => ({
+      key,
+      value,
+    }));
     drawLineChart(rawData, selectedCountyName);
   }
 });

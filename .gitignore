@@ -5,3 +5,4 @@ data/CountyLineParser.py
 data/FireParser.py
 data/FIRE_DB_1000PLUS_ACRES.csv
 backup/*
+*.pdf
