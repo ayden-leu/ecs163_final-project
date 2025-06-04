@@ -90,7 +90,7 @@ Promise.all([
         feature: d,
       })),
       ...validCities.map((d) => ({
-        name: d.properties.NAME,
+        name: d.properties.CITY,
         type: "city",
         feature: d,
       })),
@@ -98,7 +98,7 @@ Promise.all([
 
     const matches = allNames
       .filter((d) => d.name && d.name.toLowerCase().includes(query))
-      .slice(0, 3);
+      .slice(0, 5);
 
     if (matches.length === 0) {
       searchSuggestions.style.display = "none";
