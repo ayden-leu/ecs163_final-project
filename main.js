@@ -227,23 +227,33 @@ Promise.all([
 
       const currentZoom = event.transform.k;
 
-      const countyOpacity =
-        currentZoom < 4 ? 1 : Math.max(0, 1 - (currentZoom - 4));
+      let countyOpacity = 0;
+
+      if (currentZoom >= 1.5 && currentZoom < 2.5) {
+        countyOpacity = (currentZoom - 1.5) / (2.5 - 1.5);
+      } else if (currentZoom >= 2.5 && currentZoom <= 5) {
+        countyOpacity = 1;
+      } else if (currentZoom > 5 && currentZoom < 9) {
+        countyOpacity = 1 - (currentZoom - 5) / (9 - 5);
+      } else {
+        countyOpacity = 0;
+      }
+
       const cityOpacity =
-        currentZoom > 3 ? Math.min(1, (currentZoom - 3) / 2) : 0;
+        currentZoom > 4 ? Math.min(1, (currentZoom - 4) / 2) : 0;
 
       countyLabelLayer
         .selectAll("text")
         .attr("opacity", countyOpacity)
         .attr(
           "font-size",
-          (d) => `${Math.max(8, 12 - (currentZoom - 1) * 1.5)}px`
+          (d) => `${Math.max(6, 10 - (currentZoom - 1) * 1.5)}px`
         );
 
       cityLabelLayer
         .selectAll("text")
         .attr("opacity", cityOpacity)
-        .attr("font-size", (d) => Math.max(0.5, 8 / (currentZoom/2)) + "px");
+        .attr("font-size", (d) => Math.max(0.5, 8 / (currentZoom / 2)) + "px");
 
       cityLabelLayer.selectAll("text").attr("opacity", cityOpacity);
     });
@@ -285,7 +295,7 @@ Promise.all([
       return `translate(${centroid[0]}, ${centroid[1]})`;
     })
     .text((d) => d.properties.NAME)
-    .attr("opacity", 1);
+    .attr("opacity", 0);
 
   cityLabelLayer
     .selectAll("text")
