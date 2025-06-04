@@ -8,6 +8,69 @@ html, body {
   background: #f9f9f9;
 }
 
+/* Search Bar Container */
+#searchBar {
+    padding: 10px;
+    background: #f9f9f9;
+    border-bottom: 1px solid #ccc;
+    position: relative;
+}
+
+/* Input */
+#searchInput {
+    width: 300px;
+    padding: 5px;
+    font-size: 14px;
+}
+
+/* Button */
+#searchButton {
+    padding: 5px 10px;
+    font-size: 14px;
+    margin-left: 5px;
+    cursor: pointer;
+    background-color: #0077cc;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    transition: background-color 0.2s ease;
+}
+
+/* search bar at top */
+#searchButton:hover {
+    background-color: #005fa3;
+}
+
+/* Suggestions dropdown */
+#searchSuggestions {
+    position: absolute;
+    top: 42px;
+    left: 10px;
+    width: 300px;
+    max-height: 150px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-top: none;
+    z-index: 10;
+    display: none;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    border-radius: 0 0 4px 4px;
+}
+
+/* Suggestion item */
+.suggestion-item {
+    padding: 8px 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+}
+
+.suggestion-item:hover {
+    background: #f0f0f0;
+}
+
+
 /* FLEX LAYOUT FOR MAIN VIEW */
 body {
   display: flex;
