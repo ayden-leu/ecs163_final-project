@@ -189,6 +189,34 @@ svg#map {
   min-height: 200px;
 }
 
+/* GRAPH LAYERS */
+.county {
+  fill: #f0f0f0;
+  stroke: #aaa;
+  stroke-width: 0.2;
+  shape-rendering: crispEdges;
+}
+
+.city {
+  fill: #bbb; 
+  stroke: #888;
+  stroke-width: 0.1;
+  stroke-opacity: 0.6;
+  shape-rendering: crispEdges;
+}
+
+.county-label {
+  text-anchor: middle;
+  fill: #444;
+  pointer-events: none;
+}
+
+.city-label {
+  text-anchor: middle;
+  font-size: 10px;
+  fill: #555;
+  pointer-events: none;
+}
 
 
 #dragHandle {

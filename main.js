@@ -128,7 +128,7 @@ Promise.all([
         if (selected.type === "county") {
           handleCountyClick(null, selected.feature);
         } else {
-          // TODO: load in county data later 
+          // TODO: load in county data later
           const bounds = path.bounds(selected.feature);
           const dx = bounds[1][0] - bounds[0][0];
           const dy = bounds[1][1] - bounds[0][1];
@@ -208,11 +208,36 @@ Promise.all([
 
   const zoomGroup = svg.append("g").attr("class", "zoom-layer");
 
+  // Correct order:
+  const countyLayer = zoomGroup.append("g").attr("class", "counties");
+  const cityLayer = zoomGroup.append("g").attr("class", "cities");
+  const fireLayer = zoomGroup.append("g").attr("class", "fire-layer");
+
+  const countyLabelLayer = zoomGroup.append("g").attr("class", "county-labels");
+  const cityLabelLayer = zoomGroup.append("g").attr("class", "city-labels");
+
   const zoom = d3
     .zoom()
     .scaleExtent([1, 20])
     .on("zoom", (event) => {
       zoomGroup.attr("transform", event.transform);
+
+      const currentZoom = event.transform.k;
+
+      const countyOpacity =
+        currentZoom < 4 ? 1 : Math.max(0, 1 - (currentZoom - 4));
+      const cityOpacity =
+        currentZoom > 3 ? Math.min(1, (currentZoom - 3) / 2) : 0;
+
+      countyLabelLayer
+        .selectAll("text")
+        .attr("opacity", countyOpacity)
+        .attr(
+          "font-size",
+          (d) => `${Math.max(8, 12 - (currentZoom - 1) * 1.5)}px`
+        );
+
+      cityLabelLayer.selectAll("text").attr("opacity", cityOpacity);
     });
 
   svg.call(zoom);
@@ -225,35 +250,46 @@ Promise.all([
   // );
 
   // Counties (underneath)
-  zoomGroup
-    .append("g")
+  countyLayer
     .selectAll("path.county")
     .data(validCounties)
     .join("path")
     .attr("class", "county")
     .attr("d", path)
-    .attr("fill", "#f0f0f0")
-    .attr("stroke", "#aaa")
-    .attr("stroke-width", 0.2)
-    .attr("shape-rendering", "crispEdges")
     .on("click", handleCountyClick);
 
   // Cities (middle layer)
-  zoomGroup
-    .append("g")
+  cityLayer
     .selectAll("path.city")
     .data(validCities)
     .join("path")
     .attr("class", "city")
-    .attr("d", path)
-    .attr("fill", "#555")
-    .attr("stroke", "#888")
-    .attr("stroke-width", 0.1)
-    .attr("stroke-opacity", 0.6)
-    .attr("shape-rendering", "crispEdges");
+    .attr("d", path);
 
-  // Fires (top layer)
-  const fireLayer = zoomGroup.append("g").attr("class", "fire-layer");
+  // Names / labels
+  countyLabelLayer
+    .selectAll("text")
+    .data(validCounties)
+    .join("text")
+    .attr("class", "county-label")
+    .attr("transform", (d) => {
+      const centroid = path.centroid(d);
+      return `translate(${centroid[0]}, ${centroid[1]})`;
+    })
+    .text((d) => d.properties.NAME)
+    .attr("opacity", 1);
+
+  cityLabelLayer
+    .selectAll("text")
+    .data(validCities)
+    .join("text")
+    .attr("class", "city-label")
+    .attr("transform", (d) => {
+      const centroid = path.centroid(d);
+      return `translate(${centroid[0]}, ${centroid[1]})`;
+    })
+    .text((d) => d.properties.NAME)
+    .attr("opacity", 0);
 
   // Sets up the tooltips for the fires, appends the tooltip div to the body and styles it
   const tooltip = d3
