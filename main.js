@@ -222,10 +222,11 @@ Promise.all([
 ///////////////////////////////////////////////////////////////////////////
 // price graph visualization
 ///////////////////////////////////////////////////////////////////////////
-const zillowDataset = "./data/CA_counties.csv";
+const countyPrices = "./data/CA_counties.csv";
+const cityPrices = "./data/ZILLOW_DATA_CITIES.csv";
 const debugStyle = "" //"outline: 1px solid black"
 
-function processGraphData(rawData){
+function processCountyData(rawData){
     // RegionID,SizeRank,RegionName,RegionType,StateName,State,Metro,CountyName,
     // 2000-01-31,2000-02-29,2000-03-31,2000-04-30,2000-05-31,2000-06-30,2000-07-31,2000-08-31,2000-09-30,2000-10-31,
     // 2000-11-30,2000-12-31,2001-01-31,2001-02-28,2001-03-31,2001-04-30,2001-05-31,2001-06-30,2001-07-31,2001-08-31,
@@ -673,13 +674,13 @@ let lineGraphPriceData = null;
 let lineGraphPriceDataDates = [];
 let lineGraphObj = null;
 // get and process dataset
-d3.csv(zillowDataset).then(rawData =>{
+d3.csv(countyPrices).then(rawData =>{
     console.log("rawData", rawData);
 
     initGraphStyling();
 
     // process raw data
-    lineGraphPriceData = processGraphData(rawData);
+    lineGraphPriceData = processCountyData(rawData);
     console.log("lineGraphPriceData", lineGraphPriceData);
 
     // get date range
