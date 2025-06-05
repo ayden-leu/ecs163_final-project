@@ -441,6 +441,11 @@ lineGraphObj = createLineGraph();
   }
 
 function handleCountyClick(event, d) {
+    // Clear existing highlights
+d3.selectAll(".highlighted").classed("highlighted", false);
+
+// Highlight the clicked city
+d3.select(this).classed("highlighted", true);
     lineGraphPriceData = countyGraphPriceData;
     lineGraphPriceDataDates = countyGraphPriceDataDates;
     
@@ -480,6 +485,7 @@ function handleCountyClick(event, d) {
         mainContent.classList.remove("with-sidebar");
         sidebarContent.style.display = "none";
         selectedCountyName = null;
+        d3.selectAll(".highlighted").classed("highlighted", false);
     };
 
     const countyName = d.properties.NAME;
@@ -508,6 +514,11 @@ function handleCountyClick(event, d) {
 }
 
 function handleCityClick(event, d) {
+    // Clear existing highlights
+d3.selectAll(".highlighted").classed("highlighted", false);
+
+// Highlight the clicked city
+d3.select(this).classed("highlighted", true);
     lineGraphPriceData = cityGraphPriceData;
     //console.log("cityGraphPriceData", lineGraphPriceData);
     lineGraphPriceDataDates = cityGraphPriceDataDates;
@@ -517,7 +528,7 @@ function handleCityClick(event, d) {
     const dy = bounds[1][1] - bounds[0][1];
     const x = (bounds[0][0] + bounds[1][0]) / 2;
     const y = (bounds[0][1] + bounds[1][1]) / 2;
-    const scale = Math.max(1, Math.min(8, 0.9 / Math.max(dx / width, dy / height)));
+    const scale = Math.max(1, Math.min(20, 1.5 / Math.max(dx / width, dy / height)));
 
     const sidebarOffset = 300;
     const translate = [(width - sidebarOffset) / 2 - scale * x, height / 2 - scale * y];
@@ -548,6 +559,7 @@ function handleCityClick(event, d) {
         mainContent.classList.remove("with-sidebar");
         sidebarContent.style.display = "none";
         selectedCityName = null;
+        d3.selectAll(".highlighted").classed("highlighted", false);
     };
 
     const cityName = d.properties.CITY;

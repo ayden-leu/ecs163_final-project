@@ -228,3 +228,25 @@ svg#map {
   top: 0;
   z-index: 100;
 }
+
+/* #graph{
+    width: 100%;
+    height: 100%;
+} */
+
+.county.highlighted {
+  stroke: red;
+  stroke-width: 0.5;
+  fill: #fff;
+}
+
+.city.highlighted {
+  stroke: blue;
+  stroke-width: 0.25;
+  fill: #fff;
+}
+
+.county,
+.city {
+  transition: stroke 0.2s ease, stroke-width 0.2s ease;
+}
