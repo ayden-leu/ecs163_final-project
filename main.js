@@ -113,7 +113,7 @@ function zoomToFeature(d) {
     Math.min(20, 0.9 / Math.max(dx / mapObj.width, dy / mapObj.height))
   );
   const translate = [
-    mapObj.width / 2 - scale * x,
+    mapObj.width * (11 / 30) - scale * x,
     mapObj.height / 2 - scale * y,
   ];
 
