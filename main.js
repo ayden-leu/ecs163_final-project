@@ -18,6 +18,9 @@ const fireBoundaries = "data/FILTERED_BIG_FIRES.json";
 const countyPricesFile = "data/ZILLOW_DATA_COUNTIES.csv";
 const cityPricesFile = "data/ZILLOW_DATA_CITIES.csv";
 
+let isCounty = false;
+let isCity = false;
+
 // workaround for sidebar height
 const headerHeight = document.querySelector("header").offsetHeight;
 document.getElementById("sidebar").style.height = `
@@ -108,10 +111,15 @@ function zoomToFeature(d) {
   const dy = bounds[1][1] - bounds[0][1];
   const x = (bounds[0][0] + bounds[1][0]) / 2;
   const y = (bounds[0][1] + bounds[1][1]) / 2;
-  const scale = Math.max(
-    1,
-    Math.min(20, 0.9 / Math.max(dx / mapObj.width, dy / mapObj.height))
-  );
+  var scale = 0;
+  if(isCounty)
+  {
+    scale = Math.max(1, Math.min(5, 0.7 / Math.max(dx / mapObj.width, dy / mapObj.height)));
+  }
+  if(isCity)
+  {
+    scale = Math.max(1, Math.min(12, 0.7 / Math.max(dx / mapObj.width, dy / mapObj.height)));
+  }
   const translate = [
     mapObj.width * (11 / 30) - scale * x,
     mapObj.height / 2 - scale * y,
@@ -463,6 +471,8 @@ function createMapVisual() {
     .attr("class", "county")
     .attr("d", mapObj.path)
     .on("click", function (_event, data) {
+      isCity = false;
+      isCounty = true;
       // Remove "selected" from all county and city paths
       d3.selectAll("path.county").classed("selected", false);
       d3.selectAll("path.city").classed("selected", false);
@@ -487,6 +497,8 @@ function createMapVisual() {
     .attr("class", "city")
     .attr("d", mapObj.path)
     .on("click", function (_event, data) {
+      isCity = true;
+      isCounty = false;
       // Remove "selected" from all county and city paths
       d3.selectAll("path.county").classed("selected", false);
       d3.selectAll("path.city").classed("selected", false);
@@ -618,6 +630,8 @@ function openSidebar(regionName) {
 
 function closeSidebar() {
   sidebar.style.width = 0;
+  isCity = false;
+  isCounty = false;
 
   // Unselect county and city
   d3.selectAll("path.county").classed("selected", false);
