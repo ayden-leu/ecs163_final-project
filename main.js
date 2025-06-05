@@ -10,6 +10,20 @@ const citiesCSV = "data/ZILLOW_DATA_CITIES.csv";
 let countyPriceData = {};
 let cityPriceData = {};
 let selectedCountyName = null;
+let selectedCityName = null;
+
+
+let lineGraphPriceData = null;
+let lineGraphPriceDataDates = [];
+let lineGraphObj = null;
+let countyGraphPriceData = [];
+let cityGraphPriceData = [];
+let cityGraphPriceDataDates = [];
+let countyGraphPriceDataDates = [];
+
+// credit for delay function:
+// https://stackoverflow.com/questions/14226803/wait-5-seconds-before-executing-next-line
+const delay = ms => new Promise(res => setTimeout(res, ms));
 
 ///////////////////////////////////////////////////////////////////////////
 // main map visualization
@@ -28,6 +42,7 @@ function isValidGeometry(feature) {
 // Resizable sidebar
 
 const sidebar = document.getElementById("sidebar");
+console.log("📦 Sidebar element:", sidebar);
 const dragHandle = document.getElementById("dragHandle");
 
 let isResizing = false;
@@ -49,8 +64,18 @@ document.addEventListener("mousemove", function (e) {
   const countyNameHeader = sidebar.querySelector("h2")?.textContent;
   if (countyNameHeader && countyPriceData[countyNameHeader]) {
     const rawRow = countyPriceData[countyNameHeader];
-    const rawData = Object.entries(rawRow).map(([key, value]) => ({ key, value }));
-    drawLineChart(rawData, countyNameHeader);
+    const rawData = Object.entries(rawRow).map(([key, value]) => ({
+      key,
+      value,
+    }));
+  }
+  // May not need below/may not work
+  else if(countyNameHeader && cityPriceData[countyNameHeader]) {
+    const rawRow = cityPriceData[countyNameHeader];
+    const rawData = Object.entries(rawRow).map(([key, value]) => ({
+      key,
+      value,
+    }));
   }
 });
 
@@ -71,17 +96,100 @@ let cityLayer, countyLayer; // Layers to toggle between
 let showingCounties = true; // Views counties by default
 
 Promise.all([
-    d3.json(citiesJSON),
-    d3.json(countiesJSON),
-    d3.json(firesJSON),
-    d3.csv(countiesCSV, d3.autoType),
-    d3.csv(citiesCSV, d3.autoType),
+  d3.json(citiesJSON),
+  d3.json(countiesJSON),
+  d3.json(firesJSON),
+  d3.csv(countiesCSV, d3.autoType),
+  d3.csv(citiesCSV, d3.autoType),
 ]).then(([cityGeo, countyGeo, fireGeo, countyCSV, cityCSV]) => {
+  searchInput.addEventListener("input", () => {
+    const query = searchInput.value.trim().toLowerCase();
+    if (!query) {
+      searchSuggestions.style.display = "none";
+      searchSuggestions.innerHTML = "";
+      return;
+    }
 
-    // Process county housing data and assign it to a global or scoped variable
-    const countyPriceData = {};
-    // Same but for cities
-    const cityPriceData = {};
+    const allNames = [
+      ...validCounties.map((d) => ({
+        name: d.properties.NAME,
+        type: "county",
+        feature: d,
+      })),
+      ...validCities.map((d) => ({
+        name: d.properties.CITY,
+        type: "city",
+        feature: d,
+      })),
+    ];
+
+    const matches = allNames
+      .filter((d) => d.name && d.name.toLowerCase().includes(query))
+      .slice(0, 5);
+
+    if (matches.length === 0) {
+      searchSuggestions.style.display = "none";
+      searchSuggestions.innerHTML = "";
+      return;
+    }
+
+    // Show dropdown
+    searchSuggestions.style.display = "block";
+    searchSuggestions.innerHTML = matches
+      .map(
+        (d) => `
+        <div class="suggestion-item">
+            ${d.name} <span style="color: #888; font-size: 12px;">(${d.type})</span>
+        </div>
+    `
+      )
+      .join("");
+
+    // Add click handlers
+    Array.from(searchSuggestions.children).forEach((child, i) => {
+      child.addEventListener("click", () => {
+        const selected = matches[i];
+        searchInput.value = selected.name;
+        searchSuggestions.style.display = "none";
+
+        if (selected.type === "county") {
+          handleCountyClick(null, selected.feature);
+        } else {
+          // TODO: load in county data later
+          const bounds = path.bounds(selected.feature);
+          const dx = bounds[1][0] - bounds[0][0];
+          const dy = bounds[1][1] - bounds[0][1];
+          const x = (bounds[0][0] + bounds[1][0]) / 2;
+          const y = (bounds[0][1] + bounds[1][1]) / 2;
+          const scale = Math.max(
+            1,
+            Math.min(8, 0.9 / Math.max(dx / width, dy / height))
+          );
+
+          const sidebarOffset = 300;
+          const translate = [
+            (width - sidebarOffset) / 2 - scale * x,
+            height / 2 - scale * y,
+          ];
+
+          svg
+            .transition()
+            .duration(750)
+            .call(
+              zoom.transform,
+              d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale)
+            );
+        }
+      });
+    });
+  });
+
+  // You now have access to housingCSV as an array of objects
+  //console.log("Housing data loaded:", countyCSV);
+
+  // Process housing data and assign it to a global or scoped variable
+  const countyPriceData = {};
+  const cityPriceData = {};
 
     countyCSV.forEach(row => {
         const cleanedCounty = row.RegionName.replace(" County", "");
@@ -96,25 +204,42 @@ Promise.all([
             }
         }
 
-        countyPriceData[cleanedCounty] = prices;
-    });
+    countyPriceData[cleanedCounty] = prices;
+  });
 
-    cityCSV.forEach(row => {
-        const cleanedCity = row.RegionName.replace(" City", "");
-        //const county = row.CountyName.replace(" County", "");
-        const prices = [];
+  cityCSV.forEach((row) => {
+    const cleanedCity = row.RegionName;
+    const prices = [];
+    for (const key in row) {
+      if (key.startsWith("2")) {
+        prices.push({
+          date: key, // e.g., "2000-01-31"
+          price: +row[key] || null,
+        });
+      }
+    }
+    cityPriceData[cleanedCity] = prices;
+  });
 
-        for(const key in row){
-            if (key.startsWith("2")){
-                prices.push({
-                    date: key,
-                    price: +row[key] || null
-                })
-            }
-        }
-        cityPriceData[cleanedCity] = prices;
-    });
-    console.log("Example city keys:", Object.keys(cityPriceData).slice(0, 10));
+  initGraphStyling();
+  countyGraphPriceData = processCountyData(countyCSV);
+  cityGraphPriceData = processCityData(cityCSV);
+
+  countyGraphPriceDataDates = countyGraphPriceData[0].prices.map(p => p.date);
+  cityGraphPriceDataDates = cityGraphPriceData[0].prices.map(p => p.date);
+
+  lineGraphPriceData = countyGraphPriceData;
+  lineGraphPriceDataDates = countyGraphPriceDataDates;
+
+  // ✅ Initialize the graph once
+  lineGraphObj = createLineGraph();
+
+  // ✅ Add slider event listeners
+  yearSlider.addEventListener("input", yearSliderEventWrapper);
+  yearSlider.addEventListener("click", yearSliderEventWrapper);
+
+  // ✅ (Optional) render initial line graph
+  //updateLineGraph("Los Angeles County"); 
 
 
     const svg = d3.select("#map");
@@ -175,25 +300,39 @@ Promise.all([
         .attr("shape-rendering", "crispEdges")
         .on("click", handleCountyClick);
 
+  // Cities (middle layer)
+  cityLayer
+    .selectAll("path.city")
+    .data(validCities)
+    .join("path")
+    .attr("class", "city")
+    .attr("d", path)
+    .on("click", handleCityClick);
 
-    // Cities (middle layer)
-    zoomGroup
-        .append("g")
-        .selectAll("path.city")
-        .data(validCities)
-        .join("path")
-        .attr("class", "city")
-        .attr("d", path)
-        .attr("fill", "#555")
-        .attr("stroke", "#888")
-        .attr("stroke-width", 0.1)
-        .attr("stroke-opacity", 0.6)
-        .attr("shape-rendering", "crispEdges")
-        .on("click", handleCityClick);
-        
+  // Names / labels
+  countyLabelLayer
+    .selectAll("text")
+    .data(validCounties)
+    .join("text")
+    .attr("class", "county-label")
+    .attr("transform", (d) => {
+      const centroid = path.centroid(d);
+      return `translate(${centroid[0]}, ${centroid[1]})`;
+    })
+    .text((d) => d.properties.NAME)
+    .attr("opacity", 0);
 
-    // Fires (top layer)
-    const fireLayer = zoomGroup.append("g").attr("class", "fire-layer");
+  cityLabelLayer
+    .selectAll("text")
+    .data(validCities)
+    .join("text")
+    .attr("class", "city-label")
+    .attr("transform", (d) => {
+      const centroid = path.centroid(d);
+      return `translate(${centroid[0]}, ${centroid[1]})`;
+    })
+    .text((d) => d.properties.CITY)
+    .attr("opacity", 0);
 
     // Sets up the tooltips for the fires, appends the tooltip div to the body and styles it
     const tooltip = d3.select("body")
@@ -249,86 +388,106 @@ Promise.all([
         );
     }
 
-function drawLineChart(data, countyName) {
-    console.log("Drawing line chart for", countyName, "with data:", data);
+function handleCountyClick(event, d) {
+  
+  lineGraphPriceData = countyGraphPriceData;
+  lineGraphPriceDataDates = countyGraphPriceDataDates;
+  //console.log("Available:", lineGraphPriceData);
+  const countyName = d.properties.NAME; // Adjust this if your GeoJSON uses a different field
+  selectedCountyName = countyName;
+  selectedCityName = null;
+  console.log("Clicked county:", countyName);
+  d3.selectAll(".county").classed("highlighted", false);
 
-    // Clean and filter data
-    const cleanData = data
-        .map(d => {
-            const dateStr = d.value?.date;
-            const rawPrice = d.value?.price;
-            if (!dateStr || rawPrice == null || isNaN(+rawPrice)) return null;
-            return {
-                date: new Date(dateStr.replace(/\./g, "-")),
-                price: +rawPrice
-            };
-        })
-        .filter(d => d !== null);
+  // Highlight the clicked county
+  d3.select(this).classed("highlighted", true);
+    const bounds = path.bounds(d);
+    const dx = bounds[1][0] - bounds[0][0];
+    const dy = bounds[1][1] - bounds[0][1];
+    const x = (bounds[0][0] + bounds[1][0]) / 2;
+    const y = (bounds[0][1] + bounds[1][1]) / 2;
+    const scale = Math.max(1, Math.min(8, 0.9 / Math.max(dx / width, dy / height)));
 
-    if (cleanData.length === 0) {
-        console.warn("No valid data to draw for", countyName);
-        return;
-    }
+    const sidebarOffset = 300;
+    const translate = [(width - sidebarOffset) / 2 - scale * x, height / 2 - scale * y];
 
-     const container = document.getElementById("priceChart");
-    container.innerHTML = ""; // Clear previous SVG
+        svg.transition()
+            .duration(750)
+            .call(
+                zoom.transform,
+                d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale)
+            );
 
-    const containerWidth = container.clientWidth || 300;
-    const containerHeight = container.clientHeight || 250;
+    const props = d.properties;
+    // Set sidebar content
+    const sidebar = document.getElementById("sidebar");
+    const sidebarContent = document.getElementById("sidebarContent");
+    const mainContent = document.getElementById("mainContent");
+    const mapContainer = document.getElementById("mapContainer");
 
-    const margin = { top: 20, right: 30, bottom: 40, left: 60 },
-        width = containerWidth - margin.left - margin.right,
-        height = containerHeight - margin.top - margin.bottom;
+    console.log("➡️ Sidebar class list before:", sidebar.classList);
 
-    const svg = d3.select("#priceChart")
-        .append("svg")
-        .attr("width", width + margin.left + margin.right)
-        .attr("height", height + margin.top + margin.bottom)
-        .append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
+    sidebarContent.style.display = "block";
+    document.getElementById("sidebarHeader").innerHTML = d.properties.NAME;
 
-    const x = d3.scaleTime()
-        .domain(d3.extent(cleanData, d => d.date))
-        .range([0, width]);
+    sidebar.classList.add("visible");
+    console.log("✅ Sidebar made visible:", sidebar.classList);
+    mainContent.classList.add("with-sidebar");
+    //mapContainer.classList.add("with-sidebar");
 
-    const y = d3.scaleLinear()
-        .domain([0, d3.max(cleanData, d => d.price)]).nice()
-        .range([height, 0]);
+    // Close logic
+    const closeBtn = document.getElementById("closeSidebarButton");
+    closeBtn.onclick = () => {
+        sidebar.classList.remove("visible");
+        mainContent.classList.remove("with-sidebar");
+        sidebarContent.style.display = "none";
+        mapContainer.classList.remove("with-sidebar");
+        selectedCountyName = null;
+    };
 
-    svg.append("g")
-        .attr("transform", `translate(0, ${height})`)
-        .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%Y")));
+    //const countyName = d.properties.NAME;
+    //selectedCountyName = countyName;
 
-    svg.append("g")
-        .call(d3.axisLeft(y).ticks(6).tickFormat(d3.format("$,.0f")));
+    // Draw the chart (pass raw row object from countyPriceData)
+    // if (countyPriceData && countyPriceData[countyName]) {
+    //     const rawRow = countyPriceData[countyName];
+    //     const rawData = Object.entries(rawRow).map(([key, value]) => ({
+    //         key,
+    //         value
+    //     }));
+    //     // drawLineChart(
+    //     //     rawData,
+    //     //     countyName
+    //     // );
 
-    const line = d3.line()
-        .x(d => x(d.date))
-        .y(d => y(d.price));
+    // } else {
+    //     console.log("⚠️ No price data found for", countyName);
+    // }
 
-    svg.append("path")
-        .datum(cleanData)
-        .attr("fill", "none")
-        .attr("stroke", "#0077cc")
-        .attr("stroke-width", 2)
-        .attr("d", line);
 
-    svg.append("text")
-        .attr("x", width / 2)
-        .attr("y", -8)
-        .attr("text-anchor", "middle")
-        .attr("font-size", "14px")
-        .attr("font-weight", "bold")
-        .text(`Median Home Prices: ${countyName}`);
+    // update main line graph
+    //updateLineGraphDomainToAll(props.NAME);
+    updateLineGraphDomainToAll(countyName + " County");
 }
 
-    function handleCountyClick(event, d) {
-  const bounds = path.bounds(d);
-  const dx = bounds[1][0] - bounds[0][0];
-  const dy = bounds[1][1] - bounds[0][1];
-  const x = (bounds[0][0] + bounds[1][0]) / 2;
-  const y = (bounds[0][1] + bounds[1][1]) / 2;
-  const scale = Math.max(1, Math.min(8, 0.9 / Math.max(dx / width, dy / height)));
+function handleCityClick(event, d) {
+  lineGraphPriceData = cityGraphPriceData;
+  lineGraphPriceDataDates = cityGraphPriceDataDates;
+  //console.log("Available:", lineGraphPriceData);
+  const cityName = d.properties.CITY; // Adjust this if your GeoJSON uses a different field
+  selectedCountyName = null;
+  selectedCityName = cityName;
+  d3.selectAll(".city").classed("highlighted", false);
+
+  // Highlight the clicked county
+  d3.select(this).classed("highlighted", true);
+  console.log("Clicked county:", cityName);
+    const bounds = path.bounds(d);
+    const dx = bounds[1][0] - bounds[0][0];
+    const dy = bounds[1][1] - bounds[0][1];
+    const x = (bounds[0][0] + bounds[1][0]) / 2;
+    const y = (bounds[0][1] + bounds[1][1]) / 2;
+    const scale = Math.max(1, Math.min(20, 1.5 / Math.max(dx / width, dy / height)));
 
   const sidebarOffset = 300;
   const translate = [(width - sidebarOffset) / 2 - scale * x, height / 2 - scale * y];
@@ -341,97 +500,51 @@ function drawLineChart(data, countyName) {
     );
 
     const props = d.properties;
-  // Set sidebar content
-  const sidebar = document.getElementById("sidebar");
-  const sidebarContent = document.getElementById("sidebarContent");
-  const mainContent = document.getElementById("mainContent");
+    console.log("Clicked city:", props.CITY, "Props: ", props);
+    // Set sidebar content
+    const sidebar = document.getElementById("sidebar");
+    const sidebarContent = document.getElementById("sidebarContent");
+    const mainContent = document.getElementById("mainContent");
 
-  sidebarContent.innerHTML = `
-  <h2>${d.properties.NAME || "Unknown County"}</h2>
-  <div id="priceChart" style="width: 100%; height: 250px;"></div>
-  `;
-  sidebar.classList.add("visible");
-  mainContent.classList.add("with-sidebar");
+    sidebarContent.style.display = "block";
+    document.getElementById("sidebarHeader").innerHTML = d.properties.CITY;
 
-  // Close logic
-  const closeBtn = document.getElementById("closeSidebarButton");
-  closeBtn.onclick = () => {
-    sidebar.classList.remove("visible");
-    mainContent.classList.remove("with-sidebar");
-    sidebarContent.innerHTML = "";
-    selectedCountyName = null;
-  };
+    sidebar.classList.add("visible");
+    console.log("✅ Sidebar made visible:", sidebar.classList);
+    mainContent.classList.add("with-sidebar");
 
-  const countyName = d.properties.NAME;
-  selectedCountyName = countyName;
- 
-   // Draw the chart (pass raw row object from countyPriceData)
-    if (countyPriceData && countyPriceData[countyName]) {
-        const rawRow = countyPriceData[countyName];
-        const rawData = Object.entries(rawRow).map(([key, value]) => ({
-            key,
-            value
-        }));
-        drawLineChart(
-            rawData,
-            countyName
-        );
-    } else {
-        console.log("⚠️ No price data found for", countyName);
-    }
+    // Close logic
+    const closeBtn = document.getElementById("closeSidebarButton");
+    closeBtn.onclick = () => {
+        sidebar.classList.remove("visible");
+        mainContent.classList.remove("with-sidebar");
+        sidebarContent.style.display = "none";
+        selectedCityName = null;
+    };
+
+    //const countyName = d.properties.NAME;
+    //selectedCountyName = cityName;
+
+    // Draw the chart (pass raw row object from countyPriceData)
+    // if (countyPriceData && countyPriceData[countyName]) {
+    //     const rawRow = countyPriceData[countyName];
+    //     const rawData = Object.entries(rawRow).map(([key, value]) => ({
+    //         key,
+    //         value
+    //     }));
+    //     // drawLineChart(
+    //     //     rawData,
+    //     //     countyName
+    //     // );
+
+    // } else {
+    //     console.log("⚠️ No price data found for", countyName);
+    // }
 
 
-}
-
-function handleCityClick(event, d) {
-    const bounds = path.bounds(d);
-  const dx = bounds[1][0] - bounds[0][0];
-  const dy = bounds[1][1] - bounds[0][1];
-  const x = (bounds[0][0] + bounds[1][0]) / 2;
-  const y = (bounds[0][1] + bounds[1][1]) / 2;
-  const scale = Math.max(1, Math.min(8, 0.9 / Math.max(dx / width, dy / height)));
-
-  const sidebarOffset = 300;
-  const translate = [(width - sidebarOffset) / 2 - scale * x, height / 2 - scale * y];
-
-  svg.transition()
-    .duration(750)
-    .call(
-      zoom.transform,
-      d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale)
-    );
-
-  const cityName = d.properties.CITY;
-  console.log("Clicked city:", cityName);
-
-  const sidebar = document.getElementById("sidebar");
-  const sidebarContent = document.getElementById("sidebarContent");
-  const mainContent = document.getElementById("mainContent");
-
-  sidebarContent.innerHTML = `
-    <h2>${cityName}</h2>
-    <div id="priceChart" style="width: 100%; height: 250px;"></div>
-  `;
-  sidebar.classList.add("visible");
-  mainContent.classList.add("with-sidebar");
-
-  const closeBtn = document.getElementById("closeSidebarButton");
-  closeBtn.onclick = () => {
-    sidebar.classList.remove("visible");
-    mainContent.classList.remove("with-sidebar");
-    sidebarContent.innerHTML = "";
-  };
-
-  if (cityPriceData && cityPriceData[cityName]) {
-    const rawRow = cityPriceData[cityName];
-    const rawData = Object.entries(rawRow).map(([key, value]) => ({
-      key,
-      value
-    }));
-    drawLineChart(rawData, cityName);
-  } else {
-    console.warn("⚠️ No price data found for", cityName);
-  }
+    // update main line graph
+    //updateLineGraphDomainToAll(props.NAME);
+    updateLineGraphDomainToAll(cityName);
 }
 
     // Slider logic
@@ -490,8 +603,8 @@ function processGraphData(rawData){
             id: Number(entry.RegionID),
             rank: entry.SizeRank,
             name: entry.RegionName,
-            metro: entry.Metro,
-            county: entry.CountyName,
+            // metro: entry.Metro,
+            //county: entry.CountyName,
             prices: [
                 {date: d3.timeParse("%Y-%m-%d")("2000-01-31"), value: entry["2000-01-31"] === "NA"? 0 : entry["2000-01-31"]},
                 {date: d3.timeParse("%Y-%m-%d")("2000-02-29"), value: entry["2000-02-29"] === "NA"? 0 : entry["2000-02-29"]},
@@ -802,14 +915,532 @@ function processGraphData(rawData){
     });
 }
 
+function processCityData(rawData) {
+  return rawData.map(row => ({
+    name: row.RegionName,
+    county: row.CountyName,
+    prices: Object.entries(row)
+      .filter(([key, val]) => key.match(/^2\d{3}-\d{2}-\d{2}$/)) // Filter date keys
+      .map(([date, val]) => ({
+        date: new Date(date),
+        value: +val || null
+      }))
+      .filter(entry => entry.value !== null) // Remove null prices
+  }));
+}
 
-// const sidebar = document.getElementById("sidebar");
+// main stuff
+const graphContent = d3.select("#graph");
+// const tooltip = d3.select("body").append("div")
+//     .style("display", "none")
+//     .style("position", "absolute")
+//     .style("background-color", "white")
+//     .style("border", "2px solid black")
+//     .style("border-radius", "10px")
+//     .style("padding", "10px")
+//     .style("padding-bottom", "0")
+//     .style("pointer-events", "none")
+//     .style("font-family", "sans-serif")
+//     .html("you shouldn't see this")
+// ;
+
+function initGraphStyling(){
+    console.log("containerRect", graphContent);
+    const containerRect = graphContent.node().getBoundingClientRect();
+    
+    style.transitionTime = 500;
+
+    style.lineGraph = {};
+    style.lineGraph.content = {
+        offset: {x: 76, y: 0}
+    }
+    style.lineGraph.width = containerRect.width*6/8;
+    style.lineGraph.height = style.lineGraph.width / 1.5;
+    style.lineGraph.offset = {
+        x: containerRect.width/2 - style.lineGraph.width/2 - style.lineGraph.content.offset.x/2,
+        y: containerRect.height/2 - style.lineGraph.height/2
+    };
+    style.lineGraph.labels = {
+        x: {
+            text: "Date",
+            offset: {x: 0 + style.lineGraph.width/2, y: 40 + style.lineGraph.height}
+        },
+        y: {
+            text: "Average Value of Homes",
+            offset: {x: -80, y: -style.lineGraph.height/2}
+        },
+        size: 20
+    };
+    style.lineGraph.ticks = {
+        x: {
+            amount: 25
+        },
+        y: {
+            amount: 20
+        },
+        size: 15
+    };
+    style.lineGraph.line = {
+        width: 3,
+        color: {
+            default: "blue",
+            highlighted: "gold"
+        }
+    };
+    style.lineGraph.focusCircle = {
+        radius: 8,
+        width: 3,
+        color: "black"
+    }
+    style.lineGraph.highlighter = {
+        color: "white",
+        opacity: 0.2
+    }
+}
+
+function getEntryByAspect(dataset, aspect, value){
+    for(let index in dataset){
+        if(dataset[index][aspect] === value){
+            return dataset[index];
+        }
+    }
+}
+
+function updateLineGraphDomainToAll(regionName){
+
+    console.log("updateLineGraphDomainToAll", regionName);
+    // const selectedCity = getEntryByAspect(lineGraphPriceData, "name", countyProps.NAME + " County");
+    lineGraphObj.x.tickFormat = function(date){
+        return d3.timeFormat("'%y")(date);
+    }
+    lineGraphObj.x.domain = d3.extent(lineGraphPriceDataDates);
+
+    if(lineGraphObj.currentRegionData !== null){
+        lineGraphObj.y.domain = [  // round down as the precision caused errors in the min max evaluations
+            d3.min(lineGraphObj.currentRegionData.prices, entry => Math.floor(entry.value)),
+            d3.max(lineGraphObj.currentRegionData.prices, entry => Math.floor(entry.value))
+        ];
+    }
+    console.log("calling updateLineGraph with regionName", regionName);
+    updateLineGraph(regionName);
+    console.log("updateLineGraphDomainToAll - done");
+}
+
+// let lineGraphPriceData = null;
+// let lineGraphPriceDataDates = [];
+// let lineGraphObj = null;
+// let countyGraphPriceData = [];
+// let cityGraphPriceData = [];
+// let cityGraphPriceDataDates = [];
+// let countyGraphPriceDataDates = [];
+
+// // get and process dataset
+// d3.csv(countyPrices).then(rawData =>{
+//     console.log("rawData", rawData);
+
+//     initGraphStyling();
+
+//     // process raw data
+//     countyGraphPriceData = processCountyData(rawData);
+//     console.log("countyGraphPriceData - COUNTY", countyGraphPriceData);
+
+//     // get date range
+//     for(let index in countyGraphPriceData[0].prices){
+//         countyGraphPriceDataDates.push(countyGraphPriceData[0].prices[index].date);
+//     }
+//     console.log("countyGraphPriceData - COUNTY", countyGraphPriceDataDates);
+    
+//     // create line graph
+//     lineGraphObj = createLineGraph();
+
+//     // add another event listener to yearSlider
+//     yearSlider.addEventListener("input", yearSliderEventWrapper);
+//     yearSlider.addEventListener("click", yearSliderEventWrapper);
+
+//     }).catch(function(error){
+//     console.log(error);
+// });
+
+// // get and process dataset
+// d3.csv(cityPrices).then(rawData =>{
+//     console.log("rawData", rawData);
+
+//     initGraphStyling();
+
+//     // process raw data
+//     cityGraphPriceData = processCityData(rawData);
+//     console.log("cityGraphPriceData - CITY", cityGraphPriceData);
+
+//     // get date range
+//     for(let index in cityGraphPriceData[0].prices){
+//         cityGraphPriceDataDates.push(cityGraphPriceData[0].prices[index].date);
+//     }
+//     console.log("cityGraphPriceDataDates - CITY", cityGraphPriceDataDates);
+    
+//     // create line graph
+//     //lineGraphObj = createLineGraph();
+
+//     // add another event listener to yearSlider
+//     yearSlider.addEventListener("input", yearSliderEventWrapper);
+//     yearSlider.addEventListener("click", yearSliderEventWrapper);
+
+//     }).catch(function(error){
+//     console.log(error);
+// });
+
+function yearSliderEventWrapper(){
+    updateLineGraphDomainToAll(null);
+}
+
+function createLineGraph(){
+    // create lineGraph elements
+    const lineGraph = graphContent.append("g")
+        .attr("width", style.lineGraph.width)
+        .attr("height", style.lineGraph.height)
+        .attr("transform", `translate(${style.lineGraph.offset.x}, ${style.lineGraph.offset.y})`)
+        .attr("style", debugStyle)
+    ;
+
+    // x range
+    const lineGraphRangeX = d3.scaleTime()
+        .range([0, style.lineGraph.width])
+    ;
+    // x axis visual
+    const lineGraphX = lineGraph.append("g")
+        .attr("transform", `translate(${style.lineGraph.content.offset.x}, ${style.lineGraph.height + style.lineGraph.content.offset.y})`)
+        .attr("font-size", `${style.lineGraph.ticks.size}px`)
+    ;
+    
+    // y axis range
+    const lineGraphRangeY = d3.scaleLinear()
+        .range([style.lineGraph.height, 0])
+        .nice();
+
+    // y axis visual
+    const lineGraphTickFormatY = function(tick){
+        return tick.toLocaleString("en-US", {style: "currency", currency: "USD"});
+    }
+    const lineGraphY = lineGraph.append("g")
+        .attr("transform", `translate(${style.lineGraph.content.offset.x - 2}, ${style.lineGraph.content.offset.y})`)
+        .attr("font-size", `${style.lineGraph.ticks.size}px`)
+    ;
+
+    // x label
+    const lineGraphLabelX = lineGraph.append("text")
+        .attr("x", style.lineGraph.labels.x.offset.x + style.lineGraph.content.offset.x)
+        .attr("y", style.lineGraph.labels.x.offset.y + style.lineGraph.content.offset.y)
+        .attr("font-size", `${style.lineGraph.labels.size}px`)
+        .attr("text-anchor", "middle")
+    ;
+
+    // y label
+    // lineGraph.append("text")
+    //     .attr("transform", "rotate(-90)")
+    //     .attr("x", style.lineGraph.labels.y.offset.y - style.lineGraph.content.offset.y)
+    //     .attr("y", style.lineGraph.labels.y.offset.x + style.lineGraph.content.offset.x)
+    //     .attr("font-size", `${style.lineGraph.labels.size}px`)
+    //     .attr("text-anchor", "middle")
+    //     .text(style.lineGraph.labels.y.text)
+    // ;
+
+    // line
+    const lineGraphLine = lineGraph.append("path")
+        .attr("id", "lineGraphLine")
+        .attr("transform", `translate(${style.lineGraph.content.offset.x}, ${style.lineGraph.content.offset.y})`)
+        .attr("fill", "none")
+        .attr("stroke", style.lineGraph.line.color.default)
+        .attr("stroke-width", style.lineGraph.line.width)
+        .on("mouseover", function(entry){
+            const line = d3.select(this);
+        })
+        // .on("mouseover", function(entry){
+        //     // tooltip stuff
+        //     tooltip
+        //         .style("display", "block")
+        //         .html(`
+        //             <h3>Age: ${entry.age}</h3>
+        //             <ul>
+        //                 <li><p>
+        //                     <strong>Service:</strong> ${entry.primary_streaming_service}
+        //                 </p></li>
+        //                 <li><p>
+        //                     <strong>Hours Listened per Day:</strong> ${entry.hours_per_day}
+        //                 </p></li>
+        //                 <li><p>
+        //                     <strong>Favorite Genre:</strong> ${entry.fav_genre}
+        //                 </p></li>
+        //             </ul>
+        //         `)
+        //         .selectAll("ul")
+        //             .style("padding-inline-start", "13px")
+        //             .style("margin", `${style.lineGraph.tooltip.ul.margin.all}px`)
+        //     ;
+        //     tooltip.select("h3")
+        //         .style("margin", `${style.lineGraph.tooltip.h3.margin.all}px`)
+        //     ;
+        //     tooltip.selectAll("li").select("p")
+        //         .style("margin", `${style.lineGraph.tooltip.p.margin.all}px`)
+        //     ;
+        //     tooltip.select("li:last-child").select("p")
+        //         .style("margin-bottom", `${style.lineGraph.tooltip.p.margin.bottom}px`)
+        //     ;
+        // })
+        // .on("mousemove", function(){  // update tooltip position
+        //     tooltip
+        //         .style('left', (d3.event.pageX + style.lineGraph.tooltip.offset.x) + 'px')
+        //         .style('top', (d3.event.pageY + style.lineGraph.tooltip.offset.y) + 'px');
+        // })
+        // .on('mouseout', function(){  // make tooltip disappear
+        //     tooltip
+        //         .style('display', 'none');
+        // })
+    ;
+
+    // rectangle for emphasizing the current time period on the slider
+    const sectionHighlighter = lineGraph.append("rect")
+        .attr("transform", `translate(${style.lineGraph.content.offset.x}, ${style.lineGraph.content.offset.y})`)
+        .style("fill", style.lineGraph.highlighter.color)
+        .attr("height", style.lineGraph.height)
+        .style("opacity", 0)
+        .attr("id", "lineGraphSectionHighlighter")
+    ;
+
+    // clip line to within graph area
+    lineGraph.append("clipPath")
+        .attr("id", "lineClipPath")
+        .append("rect")
+            .attr("x", 0)
+            .attr("y", 0)
+            .attr("width", style.lineGraph.width)
+            .attr("height", style.lineGraph.height)
+    ;
+    lineGraphLine.attr("clip-path", "url(#lineClipPath)");
+
+    // highlighted section of line
+    const lineGraphLineHighlighted = lineGraph.append("path")
+        .attr("id", "lineGraphLineHighlighted")
+        .attr("transform", `translate(${style.lineGraph.content.offset.x}, ${style.lineGraph.content.offset.y})`)
+        .attr("fill", "none")
+        .style("opacity", 0)
+        .attr("stroke", style.lineGraph.line.color.highlighted)
+        .attr("stroke-width", style.lineGraph.line.width + 1)
+    ;
+    const lineHighlightedClipPath = lineGraph.append("clipPath")
+        .attr("id", "lineHighlightedClipPath")
+    ;
+    const lineHighlightedClipArea = lineHighlightedClipPath.append("rect")
+        .attr("height", style.lineGraph.height)
+    ;
+    lineGraphLineHighlighted.attr("clip-path", "url(#lineHighlightedClipPath)");
+    
+    // link slider to highlighters
+    async function updateHighlightedSection(){
+        await delay(10);
+
+        const startDate = new Date(yearSlider.value, 0, 1); // January 1st of the selected year
+        const endDate = new Date(yearSlider.value, 11, 31); // December 31st of the selected year
+
+        const startX = lineGraphRangeX(startDate);
+        const endX = lineGraphRangeX(endDate);
+
+        // d3.select("#lineGraphLineHighlighted").style("opacity", 1);
+
+        sectionHighlighter
+            .attr("x", startX)
+            .attr("width", endX - startX)
+            .transition().duration(style.transitionTime)
+            .style("opacity", style.lineGraph.highlighter.opacity)
+        ;
+        lineHighlightedClipArea
+            .attr("x", startX)
+            .attr("width", endX - startX)
+        ;
+        lineGraphLineHighlighted
+            .transition("updateHighlight").duration(style.transitionTime)
+            .style("opacity", 1)
+        ;
+    }
+    yearSlider.addEventListener("input", updateHighlightedSection);
+    yearSlider.addEventListener("click", updateHighlightedSection);
+
+    // tooltip + circle
+    const focusCircle = lineGraph.append("circle")
+        .style("fill", "none")
+        .attr("stroke", style.lineGraph.focusCircle.color)
+        .attr("stroke-width", style.lineGraph.focusCircle.width)
+        .attr('r', style.lineGraph.focusCircle.radius)
+        .style("opacity", 0)
+    
+    const mouseDetectionArea = lineGraph.append("rect")
+        .attr("transform", `translate(${style.lineGraph.content.offset.x}, ${style.lineGraph.content.offset.y})`)
+        .attr("fill", "none")
+        .attr("pointer-events", "all")
+        .attr("width", style.lineGraph.width)
+        .attr("height", style.lineGraph.height)
+    ;
+
+    return {
+        graph: lineGraph,
+        currentRegionData: null,
+        line: {
+            main: lineGraphLine,
+            highlighted: lineGraphLineHighlighted
+        },
+        sectionHighlighter: sectionHighlighter,
+        hoverCircle: focusCircle,
+        detectionArea: mouseDetectionArea,
+        x: {
+            visual: lineGraphX,
+            scale: lineGraphRangeX,
+            tickFormat: null,
+            label: lineGraphLabelX,
+            domain: null
+        },
+        y: {
+            visual: lineGraphY,
+            scale: lineGraphRangeY,
+            tickFormat: lineGraphTickFormatY,
+            label: null,
+            domain: null
+        }
+    };
+
+    // hover circle source (content is outdated though, d3.mouse doesnt exist)
+    // https://d3-graph-gallery.com/graph/line_cursor.html
+}
+
+function updateLineGraph(regionName = null){
+
+    // if data is null, then don't update the data used in the graph
+    if(regionName !== null){
+      console.log("🔄 [updateLineGraph] Looking up region in lineGraphPriceData...");
+        console.log("📋 [updateLineGraph] Available region names:", lineGraphPriceData.map(d => d.name));
+      console.log("regionName", regionName);
+        lineGraphObj.currentRegionData = getEntryByAspect(lineGraphPriceData, "name", regionName);
+                if (!lineGraphObj.currentRegionData) {
+            console.error("❌ No region found with name:", regionName);
+            return;
+        }
+        lineGraphObj.y.domain = [  // round down as the precision caused errors in the min max evaluations
+            d3.min(lineGraphObj.currentRegionData.prices, entry => Math.floor(entry.value)),
+            d3.max(lineGraphObj.currentRegionData.prices, entry => Math.floor(entry.value))
+        ];
+        console.log("📊 [updateLineGraph] X domain set to:", lineGraphObj.x.domain);
+        console.log("📊 [updateLineGraph] Y domain set to:", lineGraphObj.y.domain);
+    }
+
+    const data = lineGraphObj.currentRegionData;
+    if (!data) {
+        console.warn("⚠️ [updateLineGraph] No currentRegionData available, skipping graph update.");
+        return;
+    }
+    //console.log("egg", data);
+
+    // update graph ranges
+    lineGraphObj.x.scale.domain(lineGraphObj.x.domain);
+    lineGraphObj.x.ticks = d3.axisBottom(lineGraphObj.x.scale)
+        .ticks(style.lineGraph.ticks.x.amount)
+        .tickFormat(lineGraphObj.x.tickFormat)
+    ;
+    lineGraphObj.x.visual
+        .transition().duration(style.transitionTime)
+        .call(lineGraphObj.x.ticks)
+    ;
+
+    lineGraphObj.x.label.text(data.name);
+
+    lineGraphObj.y.scale.domain(lineGraphObj.y.domain);
+    lineGraphObj.y.ticks = d3.axisLeft(lineGraphObj.y.scale)
+        .ticks(style.lineGraph.ticks.y.amount)
+        .tickFormat(lineGraphObj.y.tickFormat)
+    ;
+    lineGraphObj.y.visual
+        .transition().duration(style.transitionTime)
+        .call(lineGraphObj.y.ticks)
+    ;
+
+    // update line
+    console.log("🧬 [updateLineGraph] Drawing main line...");
+    lineGraphObj.line.main
+        .datum(data.prices)
+        .transition().duration(style.transitionTime)
+        .attr("d", d3.line()
+            .x(entry => lineGraphObj.x.scale(entry.date))
+            .y(entry => lineGraphObj.y.scale(entry.value))
+        )
+    ;
+    lineGraphObj.line.highlighted
+        .datum(data.prices)
+        .transition("updateLine").duration(style.transitionTime)
+        .attr("d", d3.line()
+            .x(entry => lineGraphObj.x.scale(entry.date))
+            .y(entry => lineGraphObj.y.scale(entry.value))
+        )
+    ;
+    
+    // update range the hover circle reads from
+    const getClosestXFromPos = d3.bisector(data => data.date).left;
+
+    lineGraphObj.detectionArea
+        .on("mouseover", function() {
+            lineGraphObj.hoverCircle.style("opacity", 1);
+        })
+        .on("mousemove", function(event){
+            const mousePosition = d3.pointer(event, this);
+            const mousePositionOnGraph = lineGraphObj.x.scale.invert(mousePosition[0]);
+            const closestIndex = getClosestXFromPos(data.prices, mousePositionOnGraph);
+            const closestEntry = data.prices[closestIndex];
+
+            lineGraphObj.hoverCircle
+                .attr("transform", `translate(${style.lineGraph.content.offset.x}, ${style.lineGraph.content.offset.y})`)
+                .attr("cx", lineGraphObj.x.scale(closestEntry.date))
+                .attr("cy", lineGraphObj.y.scale(closestEntry.value))
+            ;
+        })
+        .on("mouseout", function() {
+            lineGraphObj.hoverCircle.style("opacity", 0);
+        })
+    ;
+    console.log("✅ [updateLineGraph] Graph update complete for:", data.name);
+}
+
+function updateLineGraphDomainToYear(year = null){
+    // console.log("lineGraphObj.x.domain", lineGraphObj.x.domain);
+    // console.log("data", data);
+
+    d3.select("#lineGraphSectionHighlighter").style("opacity", 0);
+    d3.select("#lineGraphLineHighlighted").style("opacity", 0);
+
+    lineGraphObj.x.domain = [new Date(year-1, 11, 1), new Date(year+1, 0, 31)];
+    lineGraphObj.x.tickFormat = function(date){
+        return d3.timeFormat("%b  '%y")(date);
+    }
+
+    // restricts values to be within the new domain range
+    function getValueInDateRange(entry, gettingMin){
+        if(entry.date >= lineGraphObj.x.domain[0] && entry.date <= lineGraphObj.x.domain[1]){
+            return entry.value;
+        }
+        return gettingMin? Infinity : 0;
+    }
+    lineGraphObj.y.domain = [
+        d3.min(lineGraphObj.currentRegionData.prices, entry => getValueInDateRange(entry, true)),
+        d3.max(lineGraphObj.currentRegionData.prices, entry => getValueInDateRange(entry, false))
+    ];
+
+    updateLineGraph();
+}
+
+
+//sidebar = document.getElementById("sidebar");
 
 const resizeObserver = new ResizeObserver(() => {
   if (selectedCountyName && countyPriceData[selectedCountyName]) {
     const rawRow = countyPriceData[selectedCountyName];
-    const rawData = Object.entries(rawRow).map(([key, value]) => ({ key, value }));
-    drawLineChart(rawData, selectedCountyName);
+    const rawData = Object.entries(rawRow).map(([key, value]) => ({
+      key,
+      value,
+    }));
   }
 });
 
