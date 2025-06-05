@@ -114,7 +114,7 @@ function zoomToFeature(d) {
   );
   const translate = [
     mapObj.width / 2 - scale * x,
-    mapObj.height / 2 - scale * y
+    mapObj.height / 2 - scale * y,
   ];
 
   d3.select("#map")
@@ -198,13 +198,39 @@ function initSearchInput() {
     searchInput.value = selectedLocation.name;
     searchSuggestions.style.display = "none";
 
+    // Zoom the map
+    zoomToFeature(selectedLocation.feature);
+
+    // Select the path (add .selected class)
     if (selectedLocation.type === "county") {
       console.log("zoom into this county: ", selectedLocation.name);
-      zoomToFeature(selectedLocation.feature);
+
+      d3.selectAll("path.county").classed("selected", false);
+      d3.selectAll("path.city").classed("selected", false);
+      d3.selectAll("path.fire").classed("selected", false);
+
+      d3.selectAll("path.county")
+        .filter((d) => d === selectedLocation.feature)
+        .classed("selected", true);
+
+      // Open sidebar & update graph
+      onRegionClicked(selectedLocation.feature);
+
       return;
     } else if (selectedLocation.type === "city") {
       console.log("zoom into this city: ", selectedLocation.name);
-      zoomToFeature(selectedLocation.feature);
+
+      d3.selectAll("path.county").classed("selected", false);
+      d3.selectAll("path.city").classed("selected", false);
+      d3.selectAll("path.fire").classed("selected", false);
+
+      d3.selectAll("path.city")
+        .filter((d) => d === selectedLocation.feature)
+        .classed("selected", true);
+
+      // Open sidebar & update graph
+      onRegionClicked(selectedLocation.feature);
+
       return;
     }
   }
@@ -442,6 +468,8 @@ function createMapVisual() {
       d3.selectAll("path.city").classed("selected", false);
       d3.selectAll("path.fire").classed("selected", false);
 
+      zoomToFeature(data, 4);
+
       // Add "selected" to this clicked path
       d3.select(this).classed("selected", true);
       const currentZoom = d3.zoomTransform(d3.select("#map").node()).k;
@@ -466,6 +494,8 @@ function createMapVisual() {
 
       // Add "selected" to this clicked path
       d3.select(this).classed("selected", true);
+
+      zoomToFeature(data, 6);
 
       const currentZoom = d3.zoomTransform(d3.select("#map").node()).k;
       updateStrokeWidths(currentZoom);
