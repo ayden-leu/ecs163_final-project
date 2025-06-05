@@ -12,11 +12,11 @@ const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
 // external datasets
 // =================
-const cityBoundaries = "data/CA_CITIES.json";
+const cityBoundaries = "data/FILTERED_CITY_LINES.json";
 const countyBoundaries = "data/FILTERED_COUNTY_LINES.json";
 const fireBoundaries = "data/FILTERED_BIG_FIRES.json";
-const countyPricesFile = "./data/CA_counties.csv";
-const cityPricesFile = "./data/ZILLOW_DATA_CITIES.csv";
+const countyPricesFile = "data/ZILLOW_DATA_COUNTIES.csv";
+const cityPricesFile = "data/ZILLOW_DATA_CITIES.csv";
 
 // workaround for sidebar height
 const headerHeight = document.querySelector("header").offsetHeight;
