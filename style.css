@@ -323,3 +323,11 @@ path.fire.selected {
 .background-rect {
     cursor: default; /* or pointer if you want */
 }
+
+/* Slight darken on hover */
+path.county:hover,
+path.city:hover,
+path.fire:hover {
+  filter: brightness(93%);
+  cursor: pointer;
+}
