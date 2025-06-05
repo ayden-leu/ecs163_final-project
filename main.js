@@ -102,6 +102,30 @@ Promise.all([
   createLineGraph();
 });
 
+function zoomToFeature(d) {
+  const bounds = mapObj.path.bounds(d);
+  const dx = bounds[1][0] - bounds[0][0];
+  const dy = bounds[1][1] - bounds[0][1];
+  const x = (bounds[0][0] + bounds[1][0]) / 2;
+  const y = (bounds[0][1] + bounds[1][1]) / 2;
+  const scale = Math.max(
+    1,
+    Math.min(20, 0.9 / Math.max(dx / mapObj.width, dy / mapObj.height))
+  );
+  const translate = [
+    mapObj.width / 2 - scale * x,
+    mapObj.height / 2 - scale * y
+  ];
+
+  d3.select("#map")
+    .transition()
+    .duration(750)
+    .call(
+      mapObj.zoom.transform,
+      d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale)
+    );
+}
+
 function initSearchInput() {
   function hideSearchSuggestions() {
     searchSuggestions.style.display = "none";
@@ -176,41 +200,13 @@ function initSearchInput() {
 
     if (selectedLocation.type === "county") {
       console.log("zoom into this county: ", selectedLocation.name);
-      // zoomIntoRegion()
-
-      // onRegionClicked(null, selectedLocation.feature);
+      zoomToFeature(selectedLocation.feature);
       return;
     } else if (selectedLocation.type === "city") {
       console.log("zoom into this city: ", selectedLocation.name);
-      // onRegionClicked(selectedLocation.name);
-      // onRegionClicked(null, selectedLocation.feature);
+      zoomToFeature(selectedLocation.feature);
       return;
     }
-
-    // TODO: load in county data later
-    // const bounds = path.bounds(selectedLocation.feature);
-    // const dx = bounds[1][0] - bounds[0][0];
-    // const dy = bounds[1][1] - bounds[0][1];
-    // const x = (bounds[0][0] + bounds[1][0]) / 2;
-    // const y = (bounds[0][1] + bounds[1][1]) / 2;
-    // const scale = Math.max(
-    // 	1,
-    // 	Math.min(8, 0.9 / Math.max(dx / width, dy / height))
-    // );
-
-    // const sidebarOffset = 300;
-    // const translate = [
-    // 	(width - sidebarOffset) / 2 - scale * x,
-    // 	height / 2 - scale * y,
-    // ];
-
-    // mapContainer
-    // 	.transition()
-    // 	.duration(750)
-    // 	.call(
-    // 		zoom.transform,
-    // 		d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale)
-    // 	);
   }
 
   function attachEventListeners(matchingLocations) {
@@ -1044,33 +1040,6 @@ function updateLineGraphDomainToYear(year = null) {
   ];
 
   updateLineGraph();
-}
-
-// broken atm
-function zoomToRegion(regionData) {
-  const bounds = mapObj.path.bounds(regionData);
-  const dx = bounds[1][0] - bounds[0][0];
-  const dy = bounds[1][1] - bounds[0][1];
-  const x = (bounds[0][0] + bounds[1][0]) / 2;
-  const y = (bounds[0][1] + bounds[1][1]) / 2;
-  const scale = Math.max(
-    1,
-    Math.min(8, 0.9 / Math.max(dx / mapObj.width, dy / mapObj.height))
-  );
-
-  const sidebarOffset = 300;
-  const translate = [
-    (mapObj.width - sidebarOffset) / 2 - scale * x,
-    mapObj.height / 2 - scale * y,
-  ];
-
-  d3.select("#map")
-    .transition()
-    .duration(750)
-    .call(
-      mapObj.zoom.transform,
-      d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale)
-    );
 }
 
 function onRegionClicked(regionData) {
