@@ -21,6 +21,7 @@ html, body {
     width: 300px;
     padding: 5px;
     font-size: 14px;
+    cursor: text;
 }
 
 /* Button */
@@ -132,7 +133,12 @@ body {
   border-radius: 50%;
   background: orange;
   border: 2px solid #444;
-  cursor: pointer;
+  cursor: grab;
+}
+
+#yearSlider::-webkit-slider-thumb:active,
+#yearSlider::-moz-range-thumb:active {
+  cursor: grabbing; 
 }
 
 /* SVG MAP */
@@ -195,6 +201,7 @@ svg#map {
   stroke: #aaa;
   stroke-width: 0.2;
   shape-rendering: crispEdges;
+  cursor: pointer;
 }
 
 .city {
@@ -203,6 +210,7 @@ svg#map {
   stroke-width: 0.1;
   stroke-opacity: 0.6;
   shape-rendering: crispEdges;
+  cursor: pointer;
 }
 
 .county-label {
