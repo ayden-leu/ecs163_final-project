@@ -1,260 +1,313 @@
-/* GLOBAL PAGE LAYOUT */
 html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
-  font-family: sans-serif;
-  background: #f9f9f9;
+	margin: 0;
+	padding: 0;
+	height: 100%;
+	width: 100%;
+	font-family: sans-serif;
+	background: #f9f9f9;
 }
-
-/* Search Bar Container */
-#searchBar {
-    padding: 10px;
-    background: #f9f9f9;
-    border-bottom: 1px solid #ccc;
-    position: relative;
-}
-
-/* Input */
-#searchInput {
-    width: 300px;
-    padding: 5px;
-    font-size: 14px;
-    cursor: text;
-}
-
-/* Button */
-#searchButton {
-    padding: 5px 10px;
-    font-size: 14px;
-    margin-left: 5px;
-    cursor: pointer;
-    background-color: #0077cc;
-    color: white;
-    border: none;
-    border-radius: 3px;
-    transition: background-color 0.2s ease;
-}
-
-/* search bar at top */
-#searchButton:hover {
-    background-color: #005fa3;
-}
-
-/* Suggestions dropdown */
-#searchSuggestions {
-    position: absolute;
-    top: 42px;
-    left: 10px;
-    width: 300px;
-    max-height: 150px;
-    overflow-y: auto;
-    background: #fff;
-    border: 1px solid #ccc;
-    border-top: none;
-    z-index: 10;
-    display: none;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    border-radius: 0 0 4px 4px;
-}
-
-/* Suggestion item */
-.suggestion-item {
-    padding: 8px 10px;
-    cursor: pointer;
-    border-bottom: 1px solid #eee;
-    font-size: 14px;
-}
-
-.suggestion-item:hover {
-    background: #f0f0f0;
-}
-
-
-/* FLEX LAYOUT FOR MAIN VIEW */
 body {
-  display: flex;
-  flex-direction: column;
+	display: flex;
+	flex-direction: column;
+}
+header{
+	display: grid;
+	grid-template-columns: 1fr 1fr 1fr;
 }
 
-/* MAIN CONTENT AREA */
+/* search bar styling */
+#searchBar {
+	padding: 10px;
+	background: #f9f9f9;
+	border-bottom: 1px solid #ccc;
+	position: relative;
+}
+
+#searchInput {
+	width: 300px;
+	padding: 5px;
+	font-size: 14px;
+	cursor: text;
+}
+
+#searchButton {
+	padding: 5px 10px;
+	font-size: 14px;
+	margin-left: 5px;
+	cursor: pointer;
+	background-color: #0077cc;
+	color: white;
+	border: none;
+	border-radius: 3px;
+	transition: background-color 0.2s ease;
+}
+#searchButton:hover {
+		background-color: #005fa3;
+}
+
+/* search suggestion styling */
+#searchSuggestions {
+	position: absolute;
+	top: 42px;
+	left: 10px;
+	width: 300px;
+	max-height: 150px;
+	overflow-y: auto;
+	background: #fff;
+	border: 1px solid #ccc;
+	border-top: none;
+	z-index: 10;
+	display: none;
+	box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+	border-radius: 0 0 4px 4px;
+}
+
+.suggestion-item {
+		padding: 8px 10px;
+		cursor: pointer;
+		border-bottom: 1px solid #eee;
+		font-size: 14px;
+}
+.suggestion-item:hover {
+		background: #f0f0f0;
+}
+
+
+/* main content area styling */
 #mainContent {
-  display: flex;
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
+	display: flex;
+	height: 100%;
+	width: 100%;
+	overflow: hidden;
 }
 
-/* MAP SECTION */
-#mapContainer {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  transition: width 0.3s ease;
-}
 
-/* TOP CONTROLS */
+/* control area / slider styling */
 #controls {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem 1.5rem;
-  background-color: #ffffff;
-  border-bottom: 1px solid #ccc;
-  font-size: 1rem;
-  z-index: 1;
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	padding: 1rem 1.5rem;
+	background-color: #ffffff;
+	border-bottom: 1px solid #ccc;
+	font-size: 1rem;
+	z-index: 1;
+	justify-content: center;
 }
 
+/* year slider */
 #yearLabel {
-  font-weight: bold;
-  color: #222;
-  padding-left: 0.5rem;
+	font-weight: bold;
+	color: #222;
+	padding-left: 0.5rem;
 }
 
-/* SLIDER STYLE */
 #yearSlider {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 300px;
-  height: 8px;
-  border-radius: 4px;
-  background: #ddd;
-  outline: none;
-  transition: background 0.3s;
-  cursor: pointer;
+	-webkit-appearance: none;
+	appearance: none;
+	width: 300px;
+	height: 8px;
+	border-radius: 4px;
+	background: #ddd;
+	outline: none;
+	transition: background 0.3s;
+	cursor: pointer;
 }
-
 #yearSlider::-webkit-slider-thumb,
 #yearSlider::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: orange;
-  border: 2px solid #444;
-  cursor: grab;
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	background: orange;
+	border: 2px solid #444;
+	cursor: grab;
 }
-
 #yearSlider::-webkit-slider-thumb:active,
 #yearSlider::-moz-range-thumb:active {
-  cursor: grabbing; 
-}
-
-/* SVG MAP */
-svg#map {
-  flex: 1;
-  width: 100%;
-  background: #cce0ff;
-  display: block;
-}
-
-/* SIDEBAR HIDDEN INITIALLY */
-#sidebar {
-  width: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  background-color: #f1f1f1;
-  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
-  transition: width 0.3s ease;
-  z-index: 10;
-  position: relative;
-}
-
-/* SHOW SIDEBAR WHEN ACTIVE */
-#sidebar.visible {
-  width: 300px;
-}
-
-/* SIDEBAR CONTENT */
-#sidebarContent {
-  padding: 16px;
-}
-
-/* CLOSE BUTTON */
-#closeSidebarButton {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: none;
-  color: red;
-  font-size: 24px;
-  border: none;
-  cursor: pointer;
-}
-
-/* SHRINK MAP WHEN SIDEBAR IS OPEN */
-#mapContainer.with-sidebar {
-  width: calc(100% - 300px);
-}
-
-/* CHART CONTAINER INSIDE SIDEBAR */
-#graphContainer {
-  margin-top: 20px;
-  width: 100%;
-  min-height: 200px;
-}
-
-/* GRAPH LAYERS */
-.county {
-  fill: #f0f0f0;
-  stroke: #aaa;
-  stroke-width: 0.2;
-  shape-rendering: crispEdges;
-  cursor: pointer;
-}
-
-.city {
-  fill: #bbb; 
-  stroke: #888;
-  stroke-width: 0.1;
-  stroke-opacity: 0.6;
-  shape-rendering: crispEdges;
-  cursor: pointer;
-}
-
-.county-label {
-  text-anchor: middle;
-  fill: #444;
-  pointer-events: none;
-}
-
-.city-label {
-  text-anchor: middle;
-  fill: #555;
-  pointer-events: none;
+	cursor: grabbing; 
 }
 
 
-#dragHandle {
-  width: 5px;
-  cursor: ew-resize;
-  background: #ccc;
-  height: 100%;
-  position: absolute;
-  left: 0;
-  top: 0;
-  z-index: 100;
+/* map styling */
+#mapContainer {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	transition: width 0.3s ease;
 }
-
-/* #graph{
-    width: 100%;
-    height: 100%;
+/* #mapContainer.with-sidebar {
+	width: calc(100% - 300px);
 } */
 
-.county.highlighted {
-  stroke: red;
-  stroke-width: 0.5;
-  fill: #fff;
+#map {
+	flex: 1;
+	width: 100%;
+	background: #cce0ff;
+	display: block;
 }
 
-.city.highlighted {
-  stroke: blue;
-  stroke-width: 0.25;
-  fill: #fff;
-}
-
+/* map layer styling */
 .county,
 .city {
-  transition: stroke 0.2s ease, stroke-width 0.2s ease;
+	transition: stroke 0.2s ease, stroke-width 0.2s ease;
+}
+
+.county {
+	fill: #f0f0f0;
+	stroke: #aaa;
+	stroke-width: 0.2;
+	shape-rendering: crispEdges;
+	cursor: pointer;
+}
+.county-label {
+	text-anchor: middle;
+	fill: #444;
+	pointer-events: none;
+}
+.county.highlighted {
+	stroke: red;
+	stroke-width: 0.5;
+	fill: #fff;
+}
+
+.city {
+	fill: #bbb; 
+	stroke: #888;
+	stroke-width: 0.1;
+	stroke-opacity: 0.6;
+	shape-rendering: crispEdges;
+	cursor: pointer;
+}
+.city-label {
+	text-anchor: middle;
+	fill: #555;
+	pointer-events: none;
+}
+.city.highlighted {
+	stroke: blue;
+	stroke-width: 0.25;
+	fill: #fff;
+}
+
+/* fire layer styling */
+path.fire{
+	fill: orange;
+	opacity: 0.5;
+	stroke: #ff8800;
+	stroke-width: 0.2;
+	shape-rendering: crispEdges;	
+}
+
+
+/* sidebar styling */
+#sidebar {
+	overflow-x: hidden;
+	overflow-y: auto;
+	background-color: #f1f1f1;
+	box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+	z-index: -3;  /* hide on initial load */
+
+	right: 0;
+	position: absolute;
+	width: 30%;
+	height: 100%;
+	transition: width 0.3s ease;
+}
+
+#sidebarContent {
+	padding: 16px;
+	height: 100%;
+	/* border: 1px solid red; */
+}
+
+#closeSidebarButton {
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	background: none;
+	color: red;
+	font-size: 24px;
+	border: none;
+	cursor: pointer;
+}
+
+#dragHandle {
+	width: 5px;
+	cursor: ew-resize;
+	background: #ccc;
+	height: 100%;
+	position: absolute;
+	left: 0;
+	top: 0;
+	z-index: 100;
+}
+
+
+/* line graph styling */
+#graphContainer {
+	position: static;
+	margin-top: 20px;
+	width: 100%;
+	/* height: 100%; */
+}
+
+#graph{
+	width: 100%;
+	height: calc(100% * 1.5);
+
+	/* debug */
+	/* border: 1px solid black;   */
+}
+
+.graphAxis{
+	font-size: 10px;
+}
+
+.graphAxisLabel{
+	font-size: 1em;
+	text-anchor: middle;
+}
+
+.lineGraphLine{
+	fill: none;
+	stroke: blue;
+	stroke-width: 3px;
+}
+.lineGraphLine.highlighted{
+	opacity: 0;
+	stroke: gold;
+	stroke-width: 4px;
+	transition: opacity 0.3s ease;
+}
+
+#lineGraphSectionHighlighter{
+	opacity: 0;
+	fill: gray;
+	transition: opacity 0.3s ease;
+}
+
+#lineGraphFocusCircle{
+	fill: none;
+	stroke: black;
+	stroke-width: 3px;
+	opacity: 0;
+	r: 8px;
+}
+
+
+
+/* tooltip styling */
+#fire-tooltip{
+	position: absolute;
+	padding: 8px;
+	background: rgba(0, 0, 0, 0.8);
+	color: #fff;
+	border-radius: 4px;
+	font-size: 12px;
+	pointer-events: none;
+	opacity: 0;
+}
+#fire-tooltip.visible{
+	opacity: 1;
 }
