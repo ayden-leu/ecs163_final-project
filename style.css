@@ -156,7 +156,6 @@ header{
 .county {
 	fill: #f0f0f0;
 	stroke: #aaa;
-	stroke-width: 0.2;
 	shape-rendering: crispEdges;
 	cursor: pointer;
 }
@@ -174,7 +173,6 @@ header{
 .city {
 	fill: #bbb; 
 	stroke: #888;
-	stroke-width: 0.1;
 	stroke-opacity: 0.6;
 	shape-rendering: crispEdges;
 	cursor: pointer;
@@ -195,7 +193,6 @@ path.fire{
 	fill: orange;
 	opacity: 0.5;
 	stroke: #ff8800;
-	stroke-width: 0.2;
 	shape-rendering: crispEdges;	
 }
 
@@ -310,4 +307,19 @@ path.fire{
 }
 #fire-tooltip.visible{
 	opacity: 1;
+}
+
+.selected {
+    stroke: #ff0000;
+    fill-opacity: 0.8; /* optional */
+}
+
+path.fire.selected {
+    fill: #ff4500; /* vibrant orange-red */
+    opacity: 0.85;
+    stroke: #8b0000;
+}
+
+.background-rect {
+    cursor: default; /* or pointer if you want */
 }
