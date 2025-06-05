@@ -556,25 +556,39 @@ function createFires(year) {
       (data) => data.properties.IRWINID || JSON.stringify(data.geometry)
     );
 
-  function showTooltip(event, d) {
+  function showFireTooltip(event, d) {
     const props = d.properties;
+    const fireName = props.FIRE_NAME || "Unknown";
+    const alarmDate = props.ALARM_DATE ? new Date(props.ALARM_DATE) : null;
+    const containmentDate = props.CONT_DATE ? new Date(props.CONT_DATE) : null;
+    const acreage = props.GIS_ACRES?.toLocaleString() || "N/A";
+
+    const formatDate = (date) =>
+    date
+      ? `${(date.getMonth() + 1).toString().padStart(2, "0")}/${date
+          .getDate()
+          .toString()
+          .padStart(2, "0")}/${date.getFullYear()}`
+      : "N/A";
+    
 
     d3
       .select("#fire-tooltip")
       .classed("visible", true)
       .style("left", event.pageX + 10 + "px")
       .style("top", event.pageY - 28 + "px").html(`
-				<strong>${props.FIRE_NAME || "Unknown Fire"}</strong><br/>
-				<strong>Year:</strong> ${props.YEAR_ || "N/A"}<br/>
-				<strong>Acres:</strong> ${props.GIS_ACRES?.toLocaleString() || "N/A"}
+				<strong>${fireName}</strong><br/>
+        <strong>Start:</strong> ${formatDate(alarmDate)}<br/>
+        <strong>End:</strong> ${formatDate(containmentDate)}<br/>
+				<strong>Acres:</strong> ${acreage}<br/>
 			`);
   }
-  function moveTooltip(event) {
+  function moveFireTooltip(event) {
     d3.select("#fire-tooltip")
       .style("left", event.pageX + 10 + "px")
       .style("top", event.pageY - 28 + "px");
   }
-  function hideTooltip() {
+  function hideFireTooltip() {
     d3.select("#fire-tooltip").classed("visible", false);
   }
 
@@ -587,13 +601,13 @@ function createFires(year) {
 
         // Tooltip events below; When mouse goes over a fire, show the tooltip with fire details (name, year, and acreage)
         .on("mouseover", (event, d) => {
-          showTooltip(event, d);
+          showFireTooltip(event, d);
         })
         .on("mousemove", (event) => {
-          moveTooltip(event);
+          moveFireTooltip(event);
         })
         .on("mouseout", () => {
-          hideTooltip();
+          hideFireTooltip();
         })
 
         .on("click", function (event, data) {
