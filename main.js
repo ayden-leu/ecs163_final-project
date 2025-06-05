@@ -473,7 +473,7 @@ d3.select(this).classed("highlighted", true);
     const mainContent = document.getElementById("mainContent");
 
     sidebarContent.style.display = "block";
-    document.getElementById("sidebarHeader").innerHTML = d.properties.NAME;
+    document.getElementById("sidebarHeader").innerHTML = `${d.properties.NAME} (County)`;
 
     sidebar.classList.add("visible");
     mainContent.classList.add("with-sidebar");
@@ -547,7 +547,7 @@ d3.select(this).classed("highlighted", true);
     const mainContent = document.getElementById("mainContent");
 
     sidebarContent.style.display = "block";
-    document.getElementById("sidebarHeader").innerHTML = d.properties.CITY;
+    document.getElementById("sidebarHeader").innerHTML = `${d.properties.CITY} (City)`;
 
     sidebar.classList.add("visible");
     mainContent.classList.add("with-sidebar");
