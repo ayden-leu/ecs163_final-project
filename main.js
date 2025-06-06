@@ -95,6 +95,9 @@ Promise.all([
   lineGraphObj.dates.county = allUniqueCountyDates;
   lineGraphObj.dates.city = allUniqueCityDates;
 
+  // console.log("lineGraphObj.dates.county", lineGraphObj.dates.county);
+  // console.log("lineGraphObj.dates.city", lineGraphObj.dates.city);
+
   createMapVisual();
   createFireTooltip();
   createFires(startYear);
@@ -299,12 +302,21 @@ function processPriceData(priceData, dateFormat) {
       dates = dates.slice(numToRemove + 1);
     }
 
+    // for (let date of dates) {
+    //   prices.push({
+    //     date: d3.timeParse(dateFormat)(date),
+    //     value: entry[date] === "NA" ? 0 : entry[date],
+    //   });
+    // }
     for (let date of dates) {
+    const rawValue = entry[date];
+    if (rawValue !== "NA" && rawValue != null && !isNaN(rawValue)) {
       prices.push({
         date: d3.timeParse(dateFormat)(date),
-        value: entry[date] === "NA" ? 0 : entry[date],
+        value: +rawValue,
       });
     }
+  }
     return prices;
   }
 
@@ -1063,12 +1075,26 @@ function updateLineGraphDomainToAll(regionData) {
 
   const lsad = regionData.LSAD;
 
+  //console.log("LineGraph", lineGraphObj.x.domain);
+
   lineGraphObj.x.tickFormat = function (date) {
     return d3.timeFormat("'%y")(date);
   };
-  lineGraphObj.x.domain = d3.extent(
-    lsad === undefined ? lineGraphObj.dates.city : lineGraphObj.dates.county
-  );
+
+  //console.log("isCity", isCity);
+  var regionName = "";
+  if(!isCity)
+  {
+    regionName = regionData.NAME.replace(" County", "");
+  }
+  else
+  {
+    regionName = regionData.CITY;
+  }
+  console.log("regionName", regionName);
+  const regionPrices = lineGraphObj.prices[lsad === undefined ? "city" : "county"][regionName];
+  lineGraphObj.x.domain = d3.extent(regionPrices, (entry) => entry.date);
+
 
   if (lineGraphObj.currentRegionData !== null) {
     lineGraphObj.y.domain = [
