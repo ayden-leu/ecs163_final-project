@@ -1124,15 +1124,15 @@ else
 			);
 
 			lineGraphObj.focusCircle
-				.attr(
-					"transform",
-					`translate(
-					${style.lineGraph.padding.left},
-					${circleRadius}
-				)`
-				)
-				.attr("cx", lineGraphObj.x.scale(closestEntry.date))
-				.attr("cy", lineGraphObj.y.scale(closestEntry.value));
+				// .attr(
+				// 	"transform",
+				// 	`translate(
+				// 	${style.lineGraph.padding.left},
+				// 	${circleRadius}
+				// )`
+				// )
+				.attr("cx", lineGraphObj.x.scale(closestEntry.date) + style.lineGraph.padding.left)
+				.attr("cy", lineGraphObj.y.scale(closestEntry.value) + style.lineGraph.padding.top);
 			
 			const tooltipX = event.pageX + 10;
 			const tooltipY = event.pageY - 28;
