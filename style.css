@@ -285,25 +285,39 @@ path.fire.selected {
 
 #closeSidebarButton {
 	position: absolute;
-	top: 10px;
-	right: 10px;
-	background: none;
-	color: var(--sidebar-color-button);
-	font-size: 24px;
-	border: none;
+	top: 5px;
+	right: 5px;
+
+	width: 18px;
+	height: 18px;
+
+	display: flex;
+	align-items: center;
+	justify-content: center;
+
+	background: transparent;
+	border: 2px solid #ccc;
+	border-radius: 50%;
+
 	cursor: pointer;
+	box-sizing: border-box;
+
+    background-color: rgba(255, 96, 92, 1);
 }
 
-/* #dragHandle {
-	width: 5px;
-	cursor: ew-resize;
-	background: #ccc;
-	height: 100%;
-	position: absolute;
-	left: 0;
-	top: 0;
-	z-index: 100;
-} */
+
+/* Hide the X icon by default */
+#closeSidebarButton .close-icon {
+	opacity: 0;
+	transition: opacity 0.2s ease;
+	font-size: 20px;
+    color: rgba(200, 48, 48, 1);
+}
+
+/* Show the X icon only when hovering over the button */
+#closeSidebarButton:hover .close-icon {
+	opacity: 1;
+}
 
 
 /* line graph styling */
