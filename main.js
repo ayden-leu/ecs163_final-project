@@ -638,6 +638,7 @@ function createFires(year) {
           console.log("Containment Date:", currentFireContainmentDate);
           d3.selectAll("path.fire").classed("selected", false);
           d3.select(this).classed("selected", true);
+          
           updateLineGraphDomainStartEnd(currentFireAlarmDate, currentFireContainmentDate);
           
         }),
@@ -744,8 +745,8 @@ function initGraphStyling() {
 
   style.lineGraph = {};
   style.lineGraph.padding = {
-    left: 72,
-    top: 10,
+    left: 84,
+    top: 30,
     right: 10,
     bottom: 40,
   };
@@ -774,6 +775,15 @@ function createLineGraph() {
   const lineGraph = d3.select("#graph").attr("height", lineGraphObj.height);
   lineGraphObj.graph = lineGraph;
 
+  // Add chart title
+lineGraph
+  .append("text")
+  .attr("class", "chart-title")
+  .attr("x", lineGraphObj.width / 2)
+  .attr("y", style.lineGraph.padding.top / 2)
+  .attr("text-anchor", "middle")
+  .text("Median Housing Prices Over Time");
+
   // x range
   const lineGraphRangeX = d3
     .scaleTime()
@@ -794,6 +804,15 @@ function createLineGraph() {
 		)`
     )
     .classed("graphAxis", true);
+  
+    lineGraph
+  .append("text")
+  .attr("class", "x-axis-label")
+  .attr("x", lineGraphObj.width / 2)
+  .attr("y", lineGraphObj.height - 5) // adjust as needed
+  .attr("text-anchor", "middle")
+  .text("Date");
+
   // y axis range
   const lineGraphRangeY = d3
     .scaleLinear()
@@ -807,7 +826,7 @@ function createLineGraph() {
 
   // y axis visual
   const lineGraphTickFormatY = function (tick) {
-    return tick.toLocaleString("en-US", { style: "currency", currency: "USD" });
+    return "$" + tick.toLocaleString(Math.round("en-US", { style: "currency", currency: "USD" }));
   };
   const lineGraphY = lineGraph
     .append("g")
@@ -819,6 +838,20 @@ function createLineGraph() {
 		)`
     )
     .classed("graphAxis", true);
+  
+    // Add Y-axis label
+lineGraph
+  .append("text")
+  .attr("class", "y-axis-label")
+  .attr("text-anchor", "middle")
+  .attr(
+    "transform",
+    `rotate(-90)`
+  )
+  .attr("x", -lineGraphObj.height / 2)
+  .attr("y", 15) // adjust spacing from left edge
+  .text("Median Home Value (in USD)");
+
   // line
   const lineGraphLine = lineGraph
     .append("path")
@@ -988,7 +1021,10 @@ function updateLineGraph(regionData = null) {
   // console.log("data", data);
 
   // update graph domains
+  //updates x domain (visually)
+  
   lineGraphObj.x.scale.domain(lineGraphObj.x.domain);
+
   lineGraphObj.x.ticks = d3
     .axisBottom(lineGraphObj.x.scale)
     .ticks(style.lineGraph.ticks.x.amount)
@@ -996,8 +1032,17 @@ function updateLineGraph(regionData = null) {
   lineGraphObj.x.visual
     .transition()
     .duration(style.transitionTime)
-    .call(lineGraphObj.x.ticks);
+    .call(lineGraphObj.x.ticks)
+      .selection()
+  .selectAll("text")
+  .attr("transform", "rotate(45)")
+  .style("text-anchor", "end")
+  .attr("dx", "0.5em")
+  .attr("dy", "1.5em")
+    ;
 
+
+// yxaxis
   lineGraphObj.y.scale.domain(lineGraphObj.y.domain);
   lineGraphObj.y.ticks = d3
     .axisLeft(lineGraphObj.y.scale)
@@ -1006,7 +1051,8 @@ function updateLineGraph(regionData = null) {
   lineGraphObj.y.visual
     .transition()
     .duration(style.transitionTime)
-    .call(lineGraphObj.y.ticks);
+    .call(lineGraphObj.y.ticks)
+    ;
 
   // update lines
   lineGraphObj.line.main
@@ -1052,15 +1098,8 @@ function updateLineGraph(regionData = null) {
       );
 
       lineGraphObj.hoverCircle
-        .attr(
-          "transform",
-          `translate(
-					${style.lineGraph.padding.left},
-					${circleRadius}
-				)`
-        )
-        .attr("cx", lineGraphObj.x.scale(closestEntry.date))
-        .attr("cy", lineGraphObj.y.scale(closestEntry.value));
+        .attr("cx", lineGraphObj.x.scale(closestEntry.date) + style.lineGraph.padding.left)
+        .attr("cy", lineGraphObj.y.scale(closestEntry.value) + style.lineGraph.padding.top);
     })
     .on("mouseout", function () {
       lineGraphObj.hoverCircle.style("opacity", 0);
@@ -1146,6 +1185,7 @@ function updateLineGraphDomainToYear(year = null) {
 
 function updateLineGraphDomainStartEnd(startDate, endDate) 
 {
+  
   d3.select("#lineGraphSectionHighlighter").style("opacity", 0);
   d3.select(".lineGraphLine.highlighted").style("opacity", 0);
 
