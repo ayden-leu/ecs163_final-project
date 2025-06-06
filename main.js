@@ -1052,7 +1052,7 @@ else
 {
 	lineGraphObj.x.ticks = d3
 		.axisBottom(lineGraphObj.x.scale)
-		.ticks(style.lineGraph.ticks.x.amount)
+		.ticks(d3.timeYear.every(1))
 		.tickFormat(lineGraphObj.x.tickFormat);
 	lineGraphObj.x.visual
 		.transition()
