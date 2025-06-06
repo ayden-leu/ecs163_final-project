@@ -22,9 +22,9 @@ The visual interface allows users to view:
 ## Data & Processing
 We integrated two core datasets:
 
-- Zillow Home Value Index (ZHVI): City and county level housing prices, monthly from 2000 to 2023.
+- **Zillow Home Value Index (ZHVI)**: City and county level housing prices, monthly from 2000 to 2023.
 
-- California Fire Perimeters: Fire boundaries, dates, and sizes from the California Natural Resources Agency.
+- **California Fire Perimeters**: Fire boundaries, dates, and sizes from the California Natural Resources Agency.
 
 To keep the interface performing fast, we filtered the wildfire data to fires over 1000 acres and optimized all geographic files with R, Python, and Mapshaper. We also aligned temporal data so that housing and fire timelines match up cleanly.
 
