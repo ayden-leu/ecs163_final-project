@@ -69,3 +69,20 @@ The recommended way to run the project is to use Live Server in VS Code:
 2. Select “Open with Live Server.”
 - The project will launch in your browser.
 - All data loads locally — no additional server or dependencies are required.
+
+## Sources
+1. California Fire Perimeters Dataset
+California Department of Forestry and Fire Protection (CAL FIRE). (2024). California Fire Perimeters (all) [Dataset]. California Natural Resources Agency Open Data. https://data.cnra.ca.gov/dataset/california-fire-perimeters-all/resource/8ea91e09-3c84-4eba-9489-3ab3b08adfd0
+
+2. US GeoJSON Boundary Files
+Carlisle, E. (2024). GeoJSON and KML data for the United States [Dataset]. Derived from U.S. Census Bureau Cartographic Boundary Files. https://eric.clst.org/tech/usgeojson/
+Note: Original data source - U.S. Census Bureau. (2010). Cartographic Boundary Files. https://www.census.gov/geographies/mapping-files/time-series/geo/carto-boundary-file.html
+
+3. California Incorporated Cities
+California Department of Forestry and Fire Protection (CAL FIRE). (2024). California Incorporated Cities [Dataset]. Version 24_1. California Natural Resources Agency Open Data. https://data.cnra.ca.gov/dataset/california-incorporated-cities
+
+4. Zillow Housing Data
+Zillow Research. (2024). Housing Data [Dataset]. Zillow Group, Inc. https://www.zillow.com/research/data/
+
+5. Mueller, J. M., Loomis, J. B., & González-Cabán, A. (2009). Do repeated wildfires change home buyers' demand for homes in high-risk areas? A hedonic analysis of the short- and long-term effects of repeated wildfires on house prices in Southern California. General Technical Report PSW-GTR-227, 70-81. USDA Forest Service, Pacific Southwest Research Station
+California Department of Forestry and Fire Protection (CAL FIRE). (2024). Wildfire Size Interpretation [Interactive Web Application]. ArcGIS Experience. https://experience.arcgis.com/experience/cd2e874658934902868a52fb70c62d77/page/----------Wildfire-Size-Interpretation
