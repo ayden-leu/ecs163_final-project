@@ -1134,8 +1134,21 @@ else
 				.attr("cx", lineGraphObj.x.scale(closestEntry.date) + style.lineGraph.padding.left)
 				.attr("cy", lineGraphObj.y.scale(closestEntry.value) + style.lineGraph.padding.top);
 			
-			const tooltipX = event.pageX + 10;
-			const tooltipY = event.pageY - 28;
+
+			const tooltip = d3.select("#lineGraphTooltip").node();
+
+			console.log("tooltip", tooltip.offsetWidth);
+			const tooltipWidth = tooltip ? tooltip.offsetWidth : 250;
+			const tooltipHeight = tooltip ? tooltip.offsetHeight : 50;
+			const padding = 10;
+			const screenRightEdge = window.innerWidth;
+			const isTooCloseToRight = (event.pageX + tooltipWidth + padding > screenRightEdge - 100);
+
+			const tooltipX = isTooCloseToRight ? event.pageX - tooltipWidth - padding : event.pageX + padding;
+			const tooltipY = event.pageY - tooltipHeight - padding;
+
+			//const tooltipX = event.pageX + 10;
+			// const tooltipY = event.pageY - 28;
 			const tooltipDate = d3.timeFormat("%b %d, %Y")(closestEntry.date);
 			const tooltipValue = (Math.round(closestEntry.value * 100) / 100).toLocaleString();
 			
