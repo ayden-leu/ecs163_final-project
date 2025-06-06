@@ -98,6 +98,7 @@ Promise.all([
 	// console.log("lineGraphObj.dates.county", lineGraphObj.dates.county);
 	// console.log("lineGraphObj.dates.city", lineGraphObj.dates.city);
 
+	initMapStyling();
 	createMapVisual();
 	createFireTooltip();
 	createFires(startYear);
@@ -331,6 +332,16 @@ function extractUniqueDates(priceObject) {
 	});
 
 	return Array.from(uniqueDates);
+}
+
+function initMapStyling(){
+	style.map = {};
+
+	style.map.fire = {
+		tooltip: {
+			offset: {x: 0, y: -88}
+		}
+	}
 }
 
 function createMapVisual() {
@@ -586,8 +597,9 @@ function createFires(year) {
 		d3
 			.select("#fire-tooltip")
 			.classed("visible", true)
-			.style("left", event.pageX + 10 + "px")
-			.style("top", event.pageY - 28 + "px").html(`
+			.style("left", event.pageX + style.map.fire.tooltip.offset.x + "px")
+			.style("top", event.pageY + style.map.fire.tooltip.offset.y + "px")
+			.html(`
 				<strong>${fireName}</strong><br/>
 				<strong>Start:</strong> ${formatDate(alarmDate)}<br/>
 				<strong>End:</strong> ${formatDate(containmentDate)}<br/>
@@ -596,8 +608,8 @@ function createFires(year) {
 	}
 	function moveFireTooltip(event) {
 		d3.select("#fire-tooltip")
-			.style("left", event.pageX + 10 + "px")
-			.style("top", event.pageY - 28 + "px");
+			.style("left", event.pageX + style.map.fire.tooltip.offset.x + "px")
+			.style("top", event.pageY + style.map.fire.tooltip.offset.y + "px");
 	}
 	function hideFireTooltip() {
 		d3.select("#fire-tooltip").classed("visible", false);
@@ -948,7 +960,7 @@ lineGraph
 	yearSlider.addEventListener("input", updateHighlightedSection);
 	yearSlider.addEventListener("click", updateHighlightedSection);
 
-	// tooltip + circle
+	// circle
 	const focusCircle = lineGraph
 		.append("circle")
 		.attr("id", "lineGraphFocusCircle");
@@ -1140,12 +1152,13 @@ else
 			console.log("tooltip", tooltip.offsetWidth);
 			const tooltipWidth = tooltip ? tooltip.offsetWidth : 250;
 			const tooltipHeight = tooltip ? tooltip.offsetHeight : 50;
-			const padding = 10;
+			const offsetX = 1;
+			const offsetY = 3;
 			const screenRightEdge = window.innerWidth;
-			const isTooCloseToRight = (event.pageX + tooltipWidth + padding > screenRightEdge - 100);
+			const isTooCloseToRight = (event.pageX + tooltipWidth + offsetX > screenRightEdge - 100);
 
-			const tooltipX = isTooCloseToRight ? event.pageX - tooltipWidth - padding : event.pageX + padding;
-			const tooltipY = event.pageY - tooltipHeight - padding;
+			const tooltipX = isTooCloseToRight ? event.pageX - tooltipWidth - offsetX : event.pageX + offsetX;
+			const tooltipY = event.pageY - tooltipHeight - offsetY;
 
 			//const tooltipX = event.pageX + 10;
 			// const tooltipY = event.pageY - 28;
