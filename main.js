@@ -825,7 +825,6 @@ function createLineGraph() {
   const sectionHighlighter = lineGraph
     .append("rect")
     .attr("id", "lineGraphSectionHighlighter")
-    .attr("class", "fire-highlight")
     .attr(
       "transform",
       `translate(
@@ -952,7 +951,7 @@ function updateLineGraph(regionData = null) {
     .style("opacity", 0)
     .attr("width", 0);
 
-  d3.select(".lineGraphLine.highlighted").style("opacity", 0);
+  d3.select(".lineGraphLine.highlighted").style("opacity", 1);
 
   // if regionName is null, then don't update the data used in the graph
   if (regionData !== null) {
@@ -1171,10 +1170,10 @@ function updateLineGraphDomainStartEnd(startDate, endDate)
 
   const highlightStart = lineGraphObj.x.scale(new Date(startDate));
   const highlightEnd = lineGraphObj.x.scale(new Date(endDate));
-  console.log("startDate", startDate);
-  console.log("endDate", endDate);
-  console.log("highlightStart", highlightStart);
-  console.log("highlightEnd", highlightEnd);
+  // console.log("startDate", startDate);
+  // console.log("endDate", endDate);
+  // console.log("highlightStart", highlightStart);
+  // console.log("highlightEnd", highlightEnd);
 
   // const height = d3.select("#lineGraphSVG").node().getBoundingClientRect().height;
   const height =
@@ -1188,18 +1187,15 @@ function updateLineGraphDomainStartEnd(startDate, endDate)
     .attr("width", highlightEnd - highlightStart)
     .attr("height", height)
     .style("transition", `opacity ${style.transitionTime}ms ease`)
-    .style("fill:" , "rgba(255, 0, 0, 0.3)")
-    .style("opacity", 0.2);
-    // fill: rgba(255, 0, 0, 0.3);
-    // stroke: red;
-    // stroke-width: 1px;
-    // opacity: 0;
-    // transition: opacity 0.1s ease;
+    .style("fill" , "rgba(170, 66, 3, 1)")
+    .style("opacity", 0.3)
+    ;
 }
 
 
 function onRegionClicked(regionData) {
   // console.log("region", regionData.properties);
+  console.log("onRegionClicked", regionData);
 
   const lsad = regionData.properties.LSAD;
   const regionName =
