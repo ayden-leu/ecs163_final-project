@@ -1,10 +1,55 @@
+:root{
+	/* colors */
+	--header-color: black;
+	--background-color: #f9f9f9;
+	--searchSuggestion-color: var(--background-color);
+	--searchSuggestion-color-border:  rgb(0, 0, 0);
+	--searchSuggestion-color-shadow: rgba(0, 0, 0, 0.1);
+	--searchSuggestion-color-item: var(--searchSuggestion-color);
+	--searchSuggestion-color-item-hover: lightgray;
+
+	--yearSlider-color: lightgray;
+	/* --yearSlider-color-border: black; */
+	--yearSlider-color-label: black;
+	--yearSlider-color-knob: orange;
+	--yearSlider-color-knob-border: black;
+
+	--map-color: #cce0ff;
+	--county-color: var(--background-color);
+	--county-color-border: gray;
+	--county-color-label: #444;
+	--county-color-highlight: var(--county-color);
+	--county-color-border-highlight: red;
+
+	--city-color: lightgray;
+	--city-color-border: gray;
+	--city-color-label: black;
+	--city-color-highlight: var(--city-color);
+	--city-color-border-highlight: rgb(88, 88, 255);
+
+	--fire-color: orange;
+	--fire-color-selected: #ff4500;
+	--fire-color-border: #ff8800;
+	--fire-color-border-selected: #8b0000;
+
+	--sidebar-color: #f1f1f1;
+	--sidebar-color-shadow: rgba(0, 0, 0, 0.2);
+	--sidebar-color-button: red;
+
+	--graph-color: rgba(0, 0, 0, 0);
+	--graph-color-border: none;
+	--graph-color-line: blue;
+	--graph-color-circle: black;
+
+}
+
 html, body {
 	margin: 0;
 	padding: 0;
 	height: 100%;
 	width: 100%;
 	font-family: sans-serif;
-	background: #f9f9f9;
+	background: var(--background-color);
 }
 body {
 	display: flex;
@@ -13,13 +58,14 @@ body {
 header{
 	display: grid;
 	grid-template-columns: 1fr 1fr 1fr;
+	border: 1px solid var(--header-color);
 }
 
 /* search bar styling */
 #searchBar {
 	padding: 10px;
-	background: #f9f9f9;
-	border-bottom: 1px solid #ccc;
+	/* background: var(--background-color); */
+	/* border-bottom: 1px solid #ccc; */
 	position: relative;
 }
 
@@ -30,7 +76,7 @@ header{
 	cursor: text;
 }
 
-#searchButton {
+/* #searchButton {
 	padding: 5px 10px;
 	font-size: 14px;
 	margin-left: 5px;
@@ -40,36 +86,39 @@ header{
 	border: none;
 	border-radius: 3px;
 	transition: background-color 0.2s ease;
-}
-#searchButton:hover {
+} */
+/* #searchButton:hover {
 		background-color: #005fa3;
-}
+} */
 
 /* search suggestion styling */
 #searchSuggestions {
 	position: absolute;
-	top: 42px;
+	top: 40px;
 	left: 10px;
 	width: 300px;
 	max-height: 150px;
 	overflow-y: auto;
-	background: #fff;
-	border: 1px solid #ccc;
+	background: var(--searchSuggestion-color);
+	border: 1px solid var(--searchSuggestion-color-border);
 	border-top: none;
 	z-index: 10;
 	display: none;
-	box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+	box-shadow: 0 40px 60px var(--searchSuggestion-color-shadow);
 	border-radius: 0 0 4px 4px;
+}
+#searchInput{
+	border: 1px solid var(--searchSuggestion-color-border);
 }
 
 .suggestion-item {
 		padding: 8px 10px;
 		cursor: pointer;
-		border-bottom: 1px solid #eee;
+		border-bottom: 1px solid var(--searchSuggestion-color-item);
 		font-size: 14px;
 }
 .suggestion-item:hover {
-		background: #f0f0f0;
+		background: var(--searchSuggestion-color-item-hover);
 }
 
 
@@ -88,8 +137,8 @@ header{
 	align-items: center;
 	gap: 1rem;
 	padding: 1rem 1.5rem;
-	background-color: #ffffff;
-	border-bottom: 1px solid #ccc;
+	/* background-color: #ffffff; */
+	/* border-bottom: 1px solid #ccc; */
 	font-size: 1rem;
 	z-index: 1;
 	justify-content: center;
@@ -98,7 +147,7 @@ header{
 /* year slider */
 #yearLabel {
 	font-weight: bold;
-	color: #222;
+	color: var(--yearSlider-color-label);
 	padding-left: 0.5rem;
 }
 
@@ -108,7 +157,7 @@ header{
 	width: 300px;
 	height: 8px;
 	border-radius: 4px;
-	background: #ddd;
+	background: var(--yearSlider-color);
 	outline: none;
 	transition: background 0.3s;
 	cursor: pointer;
@@ -118,8 +167,8 @@ header{
 	width: 18px;
 	height: 18px;
 	border-radius: 50%;
-	background: orange;
-	border: 2px solid #444;
+	background: var(--yearSlider-color-knob);
+	border: 2px solid var(--yearSlider-color-knob-border);
 	cursor: grab;
 }
 #yearSlider::-webkit-slider-thumb:active,
@@ -143,7 +192,7 @@ header{
 #map {
 	flex: 1;
 	width: 100%;
-	background: #cce0ff;
+	background: var(--map-color);
 	display: block;
 }
 
@@ -154,46 +203,60 @@ header{
 }
 
 .county {
-	fill: #f0f0f0;
-	stroke: #aaa;
+	fill: var(--county-color);
+	stroke: var(--county-color-border);
 	shape-rendering: crispEdges;
 	cursor: pointer;
 }
 .county-label {
 	text-anchor: middle;
-	fill: #444;
+	fill: var(--county-color-label);
 	pointer-events: none;
 }
-.county.highlighted {
-	stroke: red;
-	stroke-width: 0.5;
-	fill: #fff;
+.county.selected {
+	stroke: var(--county-color-border-highlight);
+	stroke-width: 1;
+	fill: var(--county-color-highlight);
 }
 
 .city {
-	fill: #bbb; 
-	stroke: #888;
+	fill: var(--city-color); 
+	stroke: var(--city-color-border);
 	stroke-opacity: 0.6;
 	shape-rendering: crispEdges;
 	cursor: pointer;
 }
 .city-label {
 	text-anchor: middle;
-	fill: #555;
+	fill: var(--city-color-label);
 	pointer-events: none;
 }
-.city.highlighted {
-	stroke: blue;
-	stroke-width: 0.25;
-	fill: #fff;
+.city.selected {
+	stroke: var(--city-color-border-highlight);
+	stroke-width: 0.5;
+	fill: var(--city-color-highlight);
 }
+
+path.county:hover,
+path.city:hover,
+path.fire:hover {
+	filter: brightness(93%);
+	cursor: pointer;
+}
+
 
 /* fire layer styling */
 path.fire{
-	fill: orange;
+	fill: var(--fire-color);
 	opacity: 0.5;
-	stroke: #ff8800;
+	stroke: var(--fire-color-border);
 	shape-rendering: crispEdges;	
+}
+path.fire.selected {
+    fill: var(--fire-color-selected);
+    opacity: 0.8;
+    stroke: var(--fire-color-border-selected);
+	stroke-width: 0.3;
 }
 
 
@@ -201,8 +264,8 @@ path.fire{
 #sidebar {
 	overflow-x: hidden;
 	overflow-y: auto;
-	background-color: #f1f1f1;
-	box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+	background-color: var(--sidebar-color);
+	box-shadow: -2px 0 5px var(--sidebar-color-shadow);
 	z-index: -3;  /* hide on initial load */
 
 	right: 0;
@@ -215,6 +278,8 @@ path.fire{
 #sidebarContent {
 	padding: 16px;
 	height: 100%;
+	
+	/* debug */
 	/* border: 1px solid red; */
 }
 
@@ -223,13 +288,13 @@ path.fire{
 	top: 10px;
 	right: 10px;
 	background: none;
-	color: red;
+	color: var(--sidebar-color-button);
 	font-size: 24px;
 	border: none;
 	cursor: pointer;
 }
 
-#dragHandle {
+/* #dragHandle {
 	width: 5px;
 	cursor: ew-resize;
 	background: #ccc;
@@ -238,7 +303,7 @@ path.fire{
 	left: 0;
 	top: 0;
 	z-index: 100;
-}
+} */
 
 
 /* line graph styling */
@@ -252,9 +317,8 @@ path.fire{
 #graph{
 	width: 100%;
 	height: calc(100% * 1.5);
-
-	/* debug */
-	/* border: 1px solid black;   */
+	background-color: var(--graph-color);
+	border: 1px solid var(--graph-color-border);
 }
 
 .graphAxis{
@@ -268,34 +332,27 @@ path.fire{
 
 .lineGraphLine{
 	fill: none;
-	stroke: blue;
+	stroke: var(--graph-color-line);
 	stroke-width: 3px;
 }
-.lineGraphLine.highlighted{
+/* .lineGraphLine.highlighted{
 	opacity: 0;
 	stroke: gold;
 	stroke-width: 4px;
-	transition: opacity 0.3s ease;
-}
-
-/* #lineGraphSectionHighlighter{
-	opacity: 0;
-	fill: gray;
 	transition: opacity 0.3s ease;
 } */
 
 #lineGraphFocusCircle{
 	fill: none;
-	stroke: black;
+	stroke: var(--graph-color-circle);
 	stroke-width: 3px;
 	opacity: 0;
 	r: 8px;
 }
 
 
-
 /* tooltip styling */
-#fire-tooltip{
+.tooltip{
 	position: absolute;
 	padding: 8px;
 	background: rgba(0, 0, 0, 0.8);
@@ -305,45 +362,10 @@ path.fire{
 	pointer-events: none;
 	opacity: 0;
 }
-#fire-tooltip.visible{
+.tooltip.visible{
 	opacity: 1;
 }
 
-.selected {
-    stroke: #ff0000;
-    fill-opacity: 0.8; /* optional */
-}
-
-path.fire.selected {
-    fill: #ff4500; /* vibrant orange-red */
-    opacity: 0.85;
-    stroke: #8b0000;
-}
-
-.background-rect {
-    cursor: default; /* or pointer if you want */
-}
-
-/* Slight darken on hover */
-path.county:hover,
-path.city:hover,
-path.fire:hover {
-  filter: brightness(93%);
-  cursor: pointer;
-}
-
-/* Fires */
-
-/* .fire-highlight {
-  fill: orange;
-  opacity: 0;
-  transition: opacity 0.5s ease-in-out;
-} */
-
-.lineGraphSectionHighlighter{
-    fill: rgba(255, 0, 0, 0.3);
-    stroke: red;
-    stroke-width: 1px;
-    opacity: 1;
-    transition: opacity 0.1s ease;
+#lineGraphTooltip{
+	z-index: 10;
 }
