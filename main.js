@@ -748,7 +748,7 @@ function initGraphStyling() {
     left: 84,
     top: 30,
     right: 10,
-    bottom: 40,
+    bottom: 80,
   };
 
   style.lineGraph.ticks = {
@@ -780,7 +780,7 @@ lineGraph
   .append("text")
   .attr("class", "chart-title")
   .attr("x", lineGraphObj.width / 2)
-  .attr("y", style.lineGraph.padding.top / 2)
+  .attr("y", style.lineGraph.padding.top / 2 + 1)
   .attr("text-anchor", "middle")
   .text("Median Housing Prices Over Time");
 
@@ -808,8 +808,8 @@ lineGraph
     lineGraph
   .append("text")
   .attr("class", "x-axis-label")
-  .attr("x", lineGraphObj.width / 2)
-  .attr("y", lineGraphObj.height - 5) // adjust as needed
+  .attr("x", lineGraphObj.width / (1.85))
+  .attr("y", lineGraphObj.height - 25) // adjust as needed
   .attr("text-anchor", "middle")
   .text("Date");
 
@@ -1001,7 +1001,7 @@ function updateLineGraph(regionData = null) {
   // if regionName is null, then don't update the data used in the graph
   if (regionData !== null) {
     const lsad = regionData.LSAD;
-
+     //console.log("lsad UPDATE", lsad);
     lineGraphObj.currentRegionData =
       lsad === undefined
         ? lineGraphObj.prices.city[regionData.CITY]
@@ -1025,6 +1025,8 @@ function updateLineGraph(regionData = null) {
   
   lineGraphObj.x.scale.domain(lineGraphObj.x.domain);
 
+if(regionData === null)
+{
   lineGraphObj.x.ticks = d3
     .axisBottom(lineGraphObj.x.scale)
     .ticks(style.lineGraph.ticks.x.amount)
@@ -1035,11 +1037,30 @@ function updateLineGraph(regionData = null) {
     .call(lineGraphObj.x.ticks)
       .selection()
   .selectAll("text")
-  .attr("transform", "rotate(45)")
+  .attr("dx", "0em")
+  .attr("dy", "1em")
+  .attr("transform", "rotate(-45)")
   .style("text-anchor", "end")
-  .attr("dx", "0.5em")
-  .attr("dy", "1.5em")
     ;
+}
+else
+{
+  lineGraphObj.x.ticks = d3
+    .axisBottom(lineGraphObj.x.scale)
+    .ticks(style.lineGraph.ticks.x.amount)
+    .tickFormat(lineGraphObj.x.tickFormat);
+  lineGraphObj.x.visual
+    .transition()
+    .duration(style.transitionTime)
+    .call(lineGraphObj.x.ticks)
+      .selection()
+  .selectAll("text")
+  .attr("transform", "rotate(-45)")
+  .style("text-anchor", "end")
+  .attr("dx", "-1em")
+  .attr("dy", "0em")
+    ;
+  }
 
 
 // yxaxis
