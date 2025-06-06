@@ -278,11 +278,11 @@ path.fire{
 	transition: opacity 0.3s ease;
 }
 
-#lineGraphSectionHighlighter{
+/* #lineGraphSectionHighlighter{
 	opacity: 0;
 	fill: gray;
 	transition: opacity 0.3s ease;
-}
+} */
 
 #lineGraphFocusCircle{
 	fill: none;
@@ -330,4 +330,20 @@ path.city:hover,
 path.fire:hover {
   filter: brightness(93%);
   cursor: pointer;
+}
+
+/* Fires */
+
+.fire-highlight {
+  fill: orange;
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.lineGraphSectionHighlighter{
+    fill: rgba(255, 0, 0, 0.3);
+    stroke: red;
+    stroke-width: 1px;
+    opacity: 0;
+    transition: opacity 0.1s ease;
 }

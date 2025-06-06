@@ -18,8 +18,10 @@ const fireBoundaries = "data/FILTERED_BIG_FIRES.json";
 const countyPricesFile = "data/ZILLOW_DATA_COUNTIES.csv";
 const cityPricesFile = "data/ZILLOW_DATA_CITIES.csv";
 
-let isCounty = false;
 let isCity = false;
+
+let currentFireAlarmDate = null;
+let currentFireContainmentDate = null;
 
 // workaround for sidebar height
 const headerHeight = document.querySelector("header").offsetHeight;
@@ -111,11 +113,7 @@ function zoomToFeature(d) {
   const dy = bounds[1][1] - bounds[0][1];
   const x = (bounds[0][0] + bounds[1][0]) / 2;
   const y = (bounds[0][1] + bounds[1][1]) / 2;
-  var scale = 0;
-  if(isCounty)
-  {
-    scale = Math.max(1, Math.min(5, 0.7 / Math.max(dx / mapObj.width, dy / mapObj.height)));
-  }
+  var scale = Math.max(1, Math.min(7, 0.7 / Math.max(dx / mapObj.width, dy / mapObj.height)));
   if(isCity)
   {
     scale = Math.max(1, Math.min(12, 0.7 / Math.max(dx / mapObj.width, dy / mapObj.height)));
@@ -203,9 +201,18 @@ function initSearchInput() {
   }
 
   function onDropdownEntryClicked(selectedLocation) {
+    console.log("Selected location:", selectedLocation);
     searchInput.value = selectedLocation.name;
     searchSuggestions.style.display = "none";
 
+    if(selectedLocation.type === "city")
+    {
+      isCity = true;
+    }
+    else
+    {
+      isCity = false;
+    }
     // Zoom the map
     zoomToFeature(selectedLocation.feature);
 
@@ -472,7 +479,6 @@ function createMapVisual() {
     .attr("d", mapObj.path)
     .on("click", function (_event, data) {
       isCity = false;
-      isCounty = true;
       // Remove "selected" from all county and city paths
       d3.selectAll("path.county").classed("selected", false);
       d3.selectAll("path.city").classed("selected", false);
@@ -498,7 +504,6 @@ function createMapVisual() {
     .attr("d", mapObj.path)
     .on("click", function (_event, data) {
       isCity = true;
-      isCounty = false;
       // Remove "selected" from all county and city paths
       d3.selectAll("path.county").classed("selected", false);
       d3.selectAll("path.city").classed("selected", false);
@@ -561,6 +566,8 @@ function createFires(year) {
     const fireName = props.FIRE_NAME || "Unknown";
     const alarmDate = props.ALARM_DATE ? new Date(props.ALARM_DATE) : null;
     const containmentDate = props.CONT_DATE ? new Date(props.CONT_DATE) : null;
+    currentFireAlarmDate = alarmDate;
+    currentFireContainmentDate = containmentDate;
     const acreage = props.GIS_ACRES?.toLocaleString() || "N/A";
 
     const formatDate = (date) =>
@@ -610,10 +617,17 @@ function createFires(year) {
           hideFireTooltip();
         })
 
-        .on("click", function (event, data) {
+        .on("click", function (event, data) 
+        {
+          console.log("Clicked fire:", data.properties.FIRE_NAME);
+          currentFireAlarmDate = data.properties.ALARM_DATE;
+          currentFireContainmentDate = data.properties.CONT_DATE;
+          console.log("Alarm Date:", currentFireAlarmDate);
+          console.log("Containment Date:", currentFireContainmentDate);
           d3.selectAll("path.fire").classed("selected", false);
           d3.select(this).classed("selected", true);
-          updateLineGraphDomainToYear(data.properties.YEAR_);
+          updateLineGraphDomainStartEnd(currentFireAlarmDate, currentFireContainmentDate);
+          
         }),
     (update) => update,
     (exit) => exit.remove()
@@ -645,7 +659,6 @@ function openSidebar(regionName) {
 function closeSidebar() {
   sidebar.style.width = 0;
   isCity = false;
-  isCounty = false;
 
   // Unselect county and city
   d3.selectAll("path.county").classed("selected", false);
@@ -812,6 +825,7 @@ function createLineGraph() {
   const sectionHighlighter = lineGraph
     .append("rect")
     .attr("id", "lineGraphSectionHighlighter")
+    .attr("class", "fire-highlight")
     .attr(
       "transform",
       `translate(
@@ -883,11 +897,11 @@ function createLineGraph() {
       .attr("x", startX)
       .attr("width", endX - startX)
       // .transition().duration(style.transitionTime)
-      .style("opacity", style.lineGraph.highlighter.opacityVisible);
+      //.style("opacity", style.lineGraph.highlighter.opacityVisible);
     lineHighlightedClipArea.attr("x", startX).attr("width", endX - startX);
     lineGraphLineHighlighted
       // .transition("updateHighlight").duration(style.transitionTime)
-      .style("opacity", 1);
+      .style("opacity", 0);
   }
   yearSlider.addEventListener("input", updateHighlightedSection);
   yearSlider.addEventListener("click", updateHighlightedSection);
@@ -934,6 +948,11 @@ function createLineGraph() {
 
 function updateLineGraph(regionData = null) {
   // console.log("regionData", regionData);
+  d3.select("#lineGraphSectionHighlighter")
+    .style("opacity", 0)
+    .attr("width", 0);
+
+  d3.select(".lineGraphLine.highlighted").style("opacity", 0);
 
   // if regionName is null, then don't update the data used in the graph
   if (regionData !== null) {
@@ -1100,6 +1119,85 @@ function updateLineGraphDomainToYear(year = null) {
   updateLineGraph();
 }
 
+function updateLineGraphDomainStartEnd(startDate, endDate) 
+{
+  d3.select("#lineGraphSectionHighlighter").style("opacity", 0);
+  d3.select(".lineGraphLine.highlighted").style("opacity", 0);
+
+  const formattedStartDate = new Date(startDate);
+  const formattedEndDate = new Date(endDate);
+
+    // Add a 6-month buffer before and after
+  const bufferedStart = new Date(startDate);
+  bufferedStart.setMonth(bufferedStart.getMonth() - 6);
+
+  const bufferedEnd = new Date(endDate);
+  bufferedEnd.setMonth(bufferedEnd.getMonth() + 6);
+  
+  //lineGraphObj.x.scale.domain = [formattedStartDate, formattedEndDate];
+
+
+  // Set the new x-axis domain
+  lineGraphObj.x.domain = [bufferedStart, bufferedEnd];
+
+  lineGraphObj.x.tickFormat = function (date) {
+    return d3.timeFormat("%b  '%y")(date);
+  };
+
+  // restricts values to be within the new domain range
+  function getValueInDateRange(entry, gettingMin) {
+    if (
+      entry.date >= lineGraphObj.x.domain[0] &&
+      entry.date <= lineGraphObj.x.domain[1]
+    ) {
+      return entry.value;
+    }
+    return gettingMin ? Infinity : 0;
+  }
+  lineGraphObj.y.domain = [
+    d3.min(lineGraphObj.currentRegionData, (entry) =>
+      getValueInDateRange(entry, true)
+    ),
+    d3.max(lineGraphObj.currentRegionData, (entry) =>
+      getValueInDateRange(entry, false)
+    ),
+  ];
+
+  updateLineGraph();
+
+  // Highlight the fire period on top of the graph
+  // const xScale = lineGraphObj.xScale;
+  // const yScale = lineGraphObj.yScale;
+
+  const highlightStart = lineGraphObj.x.scale(new Date(startDate));
+  const highlightEnd = lineGraphObj.x.scale(new Date(endDate));
+  console.log("startDate", startDate);
+  console.log("endDate", endDate);
+  console.log("highlightStart", highlightStart);
+  console.log("highlightEnd", highlightEnd);
+
+  // const height = d3.select("#lineGraphSVG").node().getBoundingClientRect().height;
+  const height =
+  lineGraphObj.height -
+  style.lineGraph.padding.top -
+  style.lineGraph.padding.bottom;
+
+  d3.select("#lineGraphSectionHighlighter")
+    .attr("x", highlightStart)
+    .attr("y", 0)
+    .attr("width", highlightEnd - highlightStart)
+    .attr("height", height)
+    .style("transition", `opacity ${style.transitionTime}ms ease`)
+    .style("fill:" , "rgba(255, 0, 0, 0.3)")
+    .style("opacity", 0.2);
+    // fill: rgba(255, 0, 0, 0.3);
+    // stroke: red;
+    // stroke-width: 1px;
+    // opacity: 0;
+    // transition: opacity 0.1s ease;
+}
+
+
 function onRegionClicked(regionData) {
   // console.log("region", regionData.properties);
 
@@ -1112,6 +1210,7 @@ function onRegionClicked(regionData) {
   updateLineGraphDomainToAll(regionData.properties);
   // zoomToRegion(regionData);
 }
+
 
 // sidebar resizing functionality
 // let sidebarIsResizing = false;
