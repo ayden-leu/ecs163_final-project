@@ -35,6 +35,7 @@
 	--sidebar-color: #f1f1f1;
 	--sidebar-color-shadow: rgba(0, 0, 0, 0.2);
 	--sidebar-color-button: red;
+	--sidebar-color-button-icon: black;
 
 	--graph-color: rgba(0, 0, 0, 0);
 	--graph-color-border: none;
@@ -288,8 +289,8 @@ path.fire.selected {
 	top: 5px;
 	right: 5px;
 
-	width: 18px;
-	height: 18px;
+	width: 30px;
+	height: 30px;
 
 	display: flex;
 	align-items: center;
@@ -310,8 +311,8 @@ path.fire.selected {
 #closeSidebarButton .close-icon {
 	opacity: 0;
 	transition: opacity 0.2s ease;
-	font-size: 20px;
-    color: rgba(200, 48, 48, 1);
+	font-size: 25px;
+    color: var(--sidebar-color-button-icon);
 }
 
 /* Show the X icon only when hovering over the button */
