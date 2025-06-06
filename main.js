@@ -639,15 +639,6 @@ function createFires(year) {
 				{
 					// console.log("Clicked fire:", data.properties.FIRE_NAME);
 
-					// egg
-					if(!userOpenedSidebarOnce){
-						userOpenedSidebarOnce = true;
-						openSidebar("Please click a county or city to display data.");
-						lineGraphObj.graph.style("opacity", 0);
-						return;
-					}
-
-
 					currentFireAlarmDate = data.properties.ALARM_DATE;
 					currentFireContainmentDate = data.properties.CONT_DATE;
 					// console.log("Alarm Date:", currentFireAlarmDate);
@@ -655,6 +646,14 @@ function createFires(year) {
 
 					d3.selectAll("path.fire").classed("selected", false);
 					d3.select(this).classed("selected", true);
+
+					if(!userOpenedSidebarOnce){
+						userOpenedSidebarOnce = true;
+						openSidebar("Please click a county or city to display data.");
+						lineGraphObj.graph.style("opacity", 0);
+						return;
+					}
+				
 					updateLineGraphDomainStartEnd(currentFireAlarmDate, currentFireContainmentDate);
 					
 				}),
