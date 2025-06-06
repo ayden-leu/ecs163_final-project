@@ -23,6 +23,8 @@ let isCity = false;
 let currentFireAlarmDate = null;
 let currentFireContainmentDate = null;
 
+let userOpenedSidebarOnce = false;
+
 // workaround for sidebar height
 const headerHeight = document.querySelector("header").offsetHeight;
 document.getElementById("sidebar").style.height = `
@@ -636,6 +638,15 @@ function createFires(year) {
 				.on("click", function (event, data) 
 				{
 					// console.log("Clicked fire:", data.properties.FIRE_NAME);
+
+					// egg
+					if(!userOpenedSidebarOnce){
+						userOpenedSidebarOnce = true;
+						openSidebar("Please click a county or city to display data.");
+						lineGraphObj.graph.style("opacity", 0);
+						return;
+					}
+
 
 					currentFireAlarmDate = data.properties.ALARM_DATE;
 					currentFireContainmentDate = data.properties.CONT_DATE;
@@ -1266,7 +1277,7 @@ function updateLineGraphDomainStartEnd(startDate, endDate)
 	const formattedStartDate = new Date(startDate);
 	const formattedEndDate = new Date(endDate);
 
-		// Add a 6-month buffer before and after
+	// Add a 6-month buffer before and after
 	const bufferedStart = new Date(startDate);
 	bufferedStart.setMonth(bufferedStart.getMonth() - 6);
 
@@ -1335,6 +1346,7 @@ function updateLineGraphDomainStartEnd(startDate, endDate)
 
 function onRegionClicked(regionData) {
 //	 console.log("onRegionClicked", regionData);
+	lineGraphObj.graph.style("opacity", 1);
 
 	const lsad = regionData.properties.LSAD;
 	const regionName =
